@@ -35,7 +35,7 @@ interface Mantle {
 }
 
 /**
- * Player robot: placeholder body built from primitives and its character controller. The collider is an invisible ellipsoid moved
+ * Player robot: body built from primitives and its character controller. The collider is an invisible ellipsoid moved
  * with Babylon's built-in collision system.
  */
 export class Robot {
@@ -223,28 +223,50 @@ export class Robot {
   }
 
   /**
-   * Placeholder body after the player-robot reference sheet: slim biped, about
-   * 1.6 m, wide binocular head on a thin neck, ceramic shell over graphite joints.
+   * Body after the player-robot reference sheet: slim biped, about 1.6 m, a wide
+   * binocular head on a thin neck, cream ceramic shell plates over graphite
+   * structure and black rubber joints, folded solar wings on the back and small
+   * cyan-white accent lights. Parts are merged per joint and material so the
+   * whole robot costs about twenty draw calls.
    */
   private buildBody(scene: Scene): void {
     const shell = new StandardMaterial("robotShell", scene);
-    shell.diffuseColor = Color3.FromHexString("#d8cfc6"); // mat-ceramic
-    shell.specularColor = new Color3(0.25, 0.25, 0.25);
-    const dark = new StandardMaterial("robotDark", scene);
-    dark.diffuseColor = Color3.FromHexString("#635f5c"); // mat-graphite
-    dark.specularColor = new Color3(0.3, 0.3, 0.3);
+    shell.diffuseColor = Color3.FromHexString("#ddd5ca"); // mat-ceramic, matte
+    shell.specularColor = new Color3(0.32, 0.31, 0.3);
+    shell.specularPower = 24;
+    const graphite = new StandardMaterial("robotGraphite", scene);
+    graphite.diffuseColor = Color3.FromHexString("#55524f");
+    graphite.specularColor = new Color3(0.35, 0.35, 0.35);
+    graphite.specularPower = 48;
     const joint = new StandardMaterial("robotJoint", scene);
-    joint.diffuseColor = Color3.FromHexString("#262626"); // flexible joints
+    joint.diffuseColor = Color3.FromHexString("#1d1d1f"); // flexible joints, rubber
+    joint.specularColor = new Color3(0.12, 0.12, 0.12);
+    const titanium = new StandardMaterial("robotTitanium", scene);
+    titanium.diffuseColor = Color3.FromHexString("#8f887c");
+    titanium.specularColor = new Color3(0.6, 0.58, 0.55);
+    titanium.specularPower = 64;
+    const solar = new StandardMaterial("robotSolar", scene);
+    solar.diffuseColor = Color3.FromHexString("#3a3d62"); // iridescent solar surface
+    solar.specularColor = new Color3(0.3, 0.28, 0.45);
+    solar.specularPower = 96;
+    const glass = new StandardMaterial("robotLensGlass", scene);
+    glass.diffuseColor = Color3.FromHexString("#0b1418");
+    glass.specularColor = new Color3(0.9, 0.95, 1);
+    glass.specularPower = 128;
+    glass.emissiveColor = new Color3(0.02, 0.07, 0.09);
     const glow = new StandardMaterial("robotGlow", scene);
     glow.emissiveColor = new Color3(0.55, 0.92, 1); // accent lights, cyan-white
     glow.disableLighting = true;
 
+    // Parts are built in their joint's local space, then merged per joint + material.
+    const groups = new Map<TransformNode, Map<StandardMaterial, Mesh[]>>();
     const part = (mesh: Mesh, mat: StandardMaterial, parent: TransformNode, x = 0, y = 0, z = 0) => {
-      mesh.material = mat;
-      mesh.parent = parent;
       mesh.position.set(x, y, z);
-      mesh.isPickable = false;
-      this.bodyMeshes.push(mesh);
+      let byMat = groups.get(parent);
+      if (!byMat) groups.set(parent, (byMat = new Map()));
+      const list = byMat.get(mat) ?? [];
+      list.push(mesh);
+      byMat.set(mat, list);
       return mesh;
     };
     const node = (name: string, parent: TransformNode, x: number, y: number, z = 0) => {
@@ -253,62 +275,136 @@ export class Robot {
       n.position.set(x, y, z);
       return n;
     };
-    /** A limb segment hanging down from its joint node. */
-    const limb = (parent: TransformNode, length: number, radius: number, mat: StandardMaterial) => {
-      part(MeshBuilder.CreateSphere("robotJoint", { diameter: radius * 2.4, segments: 6 }, scene), joint, parent);
-      const seg = part(MeshBuilder.CreateCapsule("robotLimb", { height: length, radius, tessellation: 8, subdivisions: 1 }, scene), mat, parent, 0, -length / 2);
-      return seg;
-    };
+    const sphere = (d: number, segments = 8) => MeshBuilder.CreateSphere("robotPart", { diameter: d, segments }, scene);
+    const capsule = (height: number, radius: number) =>
+      MeshBuilder.CreateCapsule("robotPart", { height, radius, tessellation: 8, subdivisions: 1, capSubdivisions: 2 }, scene);
+    const cylinder = (height: number, top: number, bottom = top, tessellation = 10) =>
+      MeshBuilder.CreateCylinder("robotPart", { height, diameterTop: top, diameterBottom: bottom, tessellation }, scene);
 
+    // --- Pelvis and torso -----------------------------------------------------
     this.pelvis = node("robotPelvis", this.visual, 0, 0.86);
-    part(MeshBuilder.CreateCylinder("robotHips", { diameterTop: 0.26, diameterBottom: 0.2, height: 0.16, tessellation: 8 }, scene), dark, this.pelvis);
-    // Torso: tapered ceramic shell over a graphite spine.
-    const chest = part(MeshBuilder.CreateCylinder("robotChest", { diameterTop: 0.42, diameterBottom: 0.24, height: 0.46, tessellation: 10 }, scene), shell, this.pelvis, 0, 0.36);
-    chest.scaling.z = 0.68;
-    part(MeshBuilder.CreateCylinder("robotSpine", { diameter: 0.12, height: 0.3, tessellation: 6 }, scene), dark, this.pelvis, 0, 0.12);
-    const core = part(MeshBuilder.CreateBox("robotCoreLight", { width: 0.03, height: 0.16, depth: 0.02 }, scene), glow, this.pelvis, 0, 0.34, 0.145);
-    core.rotation.x = -0.15;
-    // Solar plates on the back.
+    const hips = part(sphere(1, 10), shell, this.pelvis, 0, 0.0, 0.0);
+    hips.scaling.set(0.27, 0.13, 0.18);
+    part(cylinder(0.08, 0.2, 0.22), joint, this.pelvis, 0, -0.05);
+    // Exposed graphite spine and abdomen.
+    part(cylinder(0.26, 0.1, 0.12, 8), graphite, this.pelvis, 0, 0.17, -0.01);
+    for (let i = 0; i < 3; i++) part(cylinder(0.025, 0.14 - i * 0.008, 0.14 - i * 0.008, 10), joint, this.pelvis, 0, 0.1 + i * 0.06, -0.005);
+    // Chest: a shield-shaped ceramic shell, wide at the shoulders.
+    const chest = part(sphere(1, 12), shell, this.pelvis, 0, 0.45, 0.01);
+    chest.scaling.set(0.33, 0.34, 0.21);
+    const ribs = part(cylinder(0.16, 0.26, 0.15, 12), shell, this.pelvis, 0, 0.3, 0.0);
+    ribs.scaling.z = 0.62;
+    const yoke = part(capsule(0.44, 0.05), shell, this.pelvis, 0, 0.56, -0.01);
+    yoke.rotation.z = Math.PI / 2;
+    const sternum = part(MeshBuilder.CreateBox("robotPart", { width: 0.1, height: 0.22, depth: 0.04 }, scene), graphite, this.pelvis, 0, 0.36, 0.105);
+    sternum.rotation.x = -0.18;
+    part(MeshBuilder.CreateBox("robotPart", { width: 0.018, height: 0.15, depth: 0.012 }, scene), glow, this.pelvis, 0, 0.37, 0.13).rotation.x = -0.18;
+    // Collar the neck rises from.
+    part(cylinder(0.06, 0.12, 0.17), graphite, this.pelvis, 0, 0.6, 0.02);
+    // Folded solar wings on the back.
     for (const side of [-1, 1]) {
-      const plate = part(MeshBuilder.CreateBox("robotSolar", { width: 0.18, height: 0.32, depth: 0.03 }, scene), joint, this.pelvis, side * 0.1, 0.4, -0.15);
-      plate.rotation.set(0.15, side * 0.25, 0);
+      const wing = part(MeshBuilder.CreateBox("robotPart", { width: 0.13, height: 0.32, depth: 0.02 }, scene), solar, this.pelvis, side * 0.1, 0.44, -0.14);
+      wing.rotation.set(0.12, side * 0.3, side * 0.12);
+      const frame = part(MeshBuilder.CreateBox("robotPart", { width: 0.02, height: 0.36, depth: 0.03 }, scene), titanium, this.pelvis, side * 0.18, 0.44, -0.11);
+      frame.rotation.set(0.12, side * 0.3, side * 0.12);
     }
-    // Neck and head.
-    part(MeshBuilder.CreateCylinder("robotNeck", { diameter: 0.05, height: 0.2, tessellation: 6 }, scene), joint, this.pelvis, 0, 0.68);
-    this.head = node("robotHead", this.pelvis, 0, 0.84);
-    const skull = part(MeshBuilder.CreateSphere("robotSkull", { diameter: 1, segments: 10 }, scene), shell, this.head);
-    skull.scaling.set(0.44, 0.24, 0.32);
-    for (const x of [-0.1, 0.1]) {
-      const rim = part(MeshBuilder.CreateCylinder("robotLensRim", { diameter: 0.17, height: 0.1, tessellation: 14 }, scene), dark, this.head, x, -0.005, 0.12);
-      rim.rotation.x = Math.PI / 2;
-      // Twin camera lenses: the only cyan in the world.
-      const lens = part(MeshBuilder.CreateCylinder("robotLens", { diameter: 0.09, height: 0.02, tessellation: 12 }, scene), glow, this.head, x, -0.005, 0.175);
-      lens.rotation.x = Math.PI / 2;
-    }
-    part(MeshBuilder.CreateSphere("robotSensor", { diameter: 0.05, segments: 6 }, scene), dark, this.head, 0, 0.1, 0.05);
 
-    // Arms: long, reaching to the knees.
+    // --- Neck and head ------------------------------------------------------------
+    // The neck leans forward so the head sits slightly ahead of the chest.
+    const neck = part(cylinder(0.22, 0.045, 0.06, 8), joint, this.pelvis, 0, 0.72, 0.04);
+    neck.rotation.x = 0.25;
+    part(cylinder(0.05, 0.075, 0.075, 8), graphite, this.pelvis, 0, 0.76, 0.05);
+    this.head = node("robotHead", this.pelvis, 0, 0.88, 0.08);
+    // Wide, flattened pill lying sideways.
+    const skull = part(capsule(0.48, 0.12), shell, this.head, 0, 0.01, -0.02);
+    skull.rotation.z = Math.PI / 2;
+    skull.scaling.set(0.85, 1, 1.3);
+    // Dark band where the shell halves meet, and the visor recess around the lenses.
+    const band = part(capsule(0.5, 0.105), graphite, this.head, 0, -0.035, -0.02);
+    band.rotation.z = Math.PI / 2;
+    band.scaling.set(0.55, 1, 1.32);
+    part(MeshBuilder.CreateBox("robotPart", { width: 0.3, height: 0.12, depth: 0.06 }, scene), joint, this.head, 0, -0.012, 0.11);
+    // Twin lens barrels: dark rim, titanium ring, deep glass, cyan iris.
+    for (const x of [-0.085, 0.085]) {
+      const barrel = part(cylinder(0.08, 0.15, 0.16, 18), joint, this.head, x, -0.012, 0.15);
+      barrel.rotation.x = Math.PI / 2;
+      const ring = part(MeshBuilder.CreateTorus("robotPart", { diameter: 0.135, thickness: 0.018, tessellation: 14 }, scene), titanium, this.head, x, -0.012, 0.19);
+      ring.rotation.x = Math.PI / 2;
+      const lens = part(sphere(0.12, 8), glass, this.head, x, -0.012, 0.17);
+      lens.scaling.z = 0.45;
+      const iris = part(cylinder(0.006, 0.035, 0.035, 12), glow, this.head, x, -0.012, 0.198);
+      iris.rotation.x = Math.PI / 2;
+    }
+    // Secondary sensor pods on the sides and a small one on top.
+    for (const side of [-1, 1]) {
+      const pod = part(cylinder(0.05, 0.06, 0.06, 10), joint, this.head, side * 0.25, -0.02, 0.06);
+      pod.rotation.z = Math.PI / 2;
+      part(sphere(0.022, 6), glow, this.head, side * 0.278, -0.02, 0.06);
+    }
+    part(cylinder(0.025, 0.05, 0.06, 8), graphite, this.head, 0, 0.115, -0.02);
+
+    // --- Arms: long and thin, hands reach the knees -------------------------------------
     for (const side of [-1, 1]) {
       const shoulder = node("robotShoulder", this.pelvis, side * 0.22, 0.56);
-      part(MeshBuilder.CreateSphere("robotPauldron", { diameter: 0.15, segments: 6 }, scene), shell, shoulder);
-      limb(shoulder, 0.3, 0.035, shell);
+      const cap = part(sphere(1, 10), shell, shoulder, side * 0.01, 0.01, 0);
+      cap.scaling.set(0.13, 0.11, 0.13);
+      part(sphere(0.075, 8), joint, shoulder);
+      part(capsule(0.28, 0.042), shell, shoulder, 0, -0.17);
+      part(cylinder(0.12, 0.035, 0.035, 6), graphite, shoulder, 0, -0.17, -0.03);
       const elbow = node("robotElbow", shoulder, 0, -0.32);
-      limb(elbow, 0.28, 0.03, dark);
-      const hand = part(MeshBuilder.CreateBox("robotHand", { width: 0.05, height: 0.12, depth: 0.08 }, scene), joint, elbow, 0, -0.34);
-      hand.rotation.x = 0.2;
+      part(sphere(0.07, 8), joint, elbow);
+      part(sphere(0.018, 6), glow, elbow, side * 0.03, 0, 0.02);
+      part(capsule(0.26, 0.036), shell, elbow, 0, -0.15, 0.005);
+      part(cylinder(0.06, 0.05, 0.045, 8), joint, elbow, 0, -0.3);
+      // Hand: dark palm, three long fingers and a thumb.
+      part(MeshBuilder.CreateBox("robotPart", { width: 0.03, height: 0.07, depth: 0.06 }, scene), graphite, elbow, 0, -0.355, 0.01);
+      for (const [fz, len] of [[-0.02, 0.11], [0.005, 0.12], [0.03, 0.105]] as const) {
+        const finger = part(capsule(len, 0.009), joint, elbow, 0, -0.39 - len / 2 + 0.02, fz + 0.01);
+        finger.rotation.x = 0.25 + fz * 2;
+      }
+      const thumb = part(capsule(0.07, 0.009), joint, elbow, -side * 0.02, -0.37, 0.045);
+      thumb.rotation.set(0.7, 0, side * 0.3);
       this.arms.push({ shoulder, elbow });
     }
-    // Legs with a split foot.
+
+    // --- Legs: ceramic thigh and shin plates, adaptive split foot -------------------------
     for (const side of [-1, 1]) {
       const hip = node("robotHip", this.pelvis, side * 0.1, -0.06);
-      limb(hip, 0.38, 0.05, shell);
+      part(sphere(0.09, 8), joint, hip);
+      const thigh = part(capsule(0.36, 0.062), shell, hip, 0, -0.19, 0.01);
+      thigh.scaling.z = 1.15;
+      part(cylinder(0.28, 0.04, 0.04, 6), graphite, hip, side * 0.035, -0.2, -0.04);
       const knee = node("robotKnee", hip, 0, -0.4);
-      limb(knee, 0.36, 0.04, dark);
-      for (const toe of [-0.03, 0.03]) {
-        const foot = part(MeshBuilder.CreateBox("robotToe", { width: 0.04, height: 0.04, depth: 0.16 }, scene), joint, knee, toe, -0.4, 0.05);
-        foot.rotation.y = toe * 3;
+      part(sphere(0.085, 8), joint, knee);
+      part(sphere(0.02, 6), glow, knee, 0, 0, 0.04);
+      const kneeCap = part(sphere(1, 8), shell, knee, 0, 0.0, 0.035);
+      kneeCap.scaling.set(0.07, 0.08, 0.05);
+      const shin = part(cylinder(0.32, 0.1, 0.06, 10), shell, knee, 0, -0.19, 0.015);
+      shin.scaling.z = 1.2;
+      part(cylinder(0.3, 0.03, 0.03, 6), graphite, knee, 0, -0.2, -0.04);
+      part(sphere(0.06, 8), joint, knee, 0, -0.36);
+      // Two forward toes and a heel spur.
+      for (const tx of [-0.028, 0.028]) {
+        const toe = part(capsule(0.17, 0.022), graphite, knee, tx, -0.385, 0.07);
+        toe.rotation.set(Math.PI / 2 - 0.08, tx * 2.5, 0);
+        const tip = part(sphere(1, 6), shell, knee, tx * 1.2, -0.38, 0.12);
+        tip.scaling.set(0.045, 0.035, 0.07);
       }
+      const heel = part(capsule(0.09, 0.018), joint, knee, 0, -0.385, -0.04);
+      heel.rotation.x = -Math.PI / 2 + 0.3;
       this.legs.push({ hip, knee });
+    }
+
+    for (const [parent, byMat] of groups) {
+      for (const [mat, meshes] of byMat) {
+        const merged = meshes.length === 1 ? meshes[0] : Mesh.MergeMeshes(meshes, true, true);
+        if (!merged) continue;
+        merged.name = `robot:${parent.name}:${mat.name}`;
+        merged.material = mat;
+        merged.parent = parent;
+        merged.isPickable = false;
+        this.bodyMeshes.push(merged);
+      }
     }
   }
 

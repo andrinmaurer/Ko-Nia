@@ -1,6 +1,4 @@
 import {
-  Color3,
-  Color4,
   DirectionalLight,
   Engine,
   GlowLayer,
@@ -22,6 +20,7 @@ import { MAX_ENERGY, MAX_HEALTH, RobotStatus } from "./player/status";
 import { Hud } from "./ui/hud";
 import { icon } from "./ui/icons";
 import { LogbookView } from "./ui/logbookView";
+import { Atmosphere } from "./world/atmosphere";
 import { createAnimals, createStaticDiscoveries } from "./world/life/animals";
 import { createPlants } from "./world/life/plants";
 import { RelayStation } from "./world/relay";
@@ -41,14 +40,10 @@ const scene = new Scene(engine);
 scene.collisionsEnabled = true;
 scene.skipPointerMovePicking = true;
 
-// Lighting follows the day/night cycle; see applyLighting().
+// Lighting follows the day/night cycle; see world/atmosphere.ts.
 const sky = new HemisphericLight("sky", new Vector3(0, 1, 0), scene);
-sky.groundColor = new Color3(0.25, 0.28, 0.22);
 const sun = new DirectionalLight("sun", new Vector3(-0.55, -1, 0.35), scene);
 sun.position = new Vector3(40, 70, -25);
-scene.fogMode = Scene.FOGMODE_EXP2;
-scene.fogDensity = 0.012;
-scene.ambientColor = new Color3(0.3, 0.32, 0.3);
 const glowLayer = new GlowLayer("glowLayer", scene, { blurKernelSize: 16, mainTextureRatio: 0.25 });
 glowLayer.intensity = 0.9;
 
@@ -56,8 +51,8 @@ const shadows = new ShadowGenerator(2048, sun);
 shadows.usePercentageCloserFiltering = true;
 shadows.bias = 0.002;
 
-const skyDome = new Sky(scene);
 const world = buildShrineStreet(scene, shadows);
+const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
 const rig = new CameraRig(scene, robot);
@@ -283,7 +278,7 @@ function frame(dt: number): void {
     updateGame(dt);
   }
   input.endFrame();
-  applyLighting();
+  atmosphere.apply(time);
 
   fpsTimer -= dt;
   if (fpsTimer <= 0) {
@@ -358,24 +353,6 @@ function updateGame(dt: number): void {
     autosaveTimer = 30;
     save();
   }
-}
-
-// --- Lighting ----------------------------------------------------------------
-
-const DAY_SKY = new Color3(0.62, 0.7, 0.74);
-const NIGHT_SKY = new Color3(0.04, 0.06, 0.1);
-
-function applyLighting(): void {
-  const d = time.daylight;
-  sun.direction = time.sunDirection;
-  sun.intensity = 1.4 * d;
-  sun.diffuse = Color3.Lerp(new Color3(1, 0.6, 0.4), new Color3(1, 0.9, 0.75), d);
-  sky.intensity = 0.35 + 0.6 * d;
-  sky.diffuse = Color3.Lerp(new Color3(0.35, 0.45, 0.75), new Color3(0.75, 0.82, 0.9), d);
-  const skyColor = Color3.Lerp(NIGHT_SKY, DAY_SKY, d);
-  scene.clearColor = new Color4(skyColor.r, skyColor.g, skyColor.b, 1);
-  skyDome.setTint(Color3.Lerp(new Color3(0.06, 0.08, 0.16), new Color3(1, 1, 1), d));
-  scene.fogColor = Color3.Lerp(NIGHT_SKY, new Color3(0.66, 0.72, 0.74), d);
 }
 
 engine.runRenderLoop(() => scene.render());
