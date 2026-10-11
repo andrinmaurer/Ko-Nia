@@ -596,7 +596,7 @@ button {
 
 .lb-image {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 3 / 2;
   background: var(--void);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);

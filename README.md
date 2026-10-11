@@ -71,3 +71,7 @@ UI styling comes from the Ko-Nia design system (Terminal theme), copied into `sr
 ## Discoverable asset references
 
 The [discoverable asset blockout and visual inventory](docs/art/discoverables/discoverable-assets.md) covers all 18 MVP entries, with individual species/object turnarounds, location sheets, generation prompts and modeling notes. These are first-pass concept references.
+
+## Logbook photographs
+
+The [36 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street and Temple Hill. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.

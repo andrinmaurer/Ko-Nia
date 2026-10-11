@@ -1,3 +1,4 @@
+import { logbookPhoto } from "../discovery/photos";
 import { coordinates, formatHour, inWorldDate, type DayCycle } from "../game/dayCycle";
 import { ENTRIES, ENTRY_BY_ID, stepsFor, unknownNumber, type Category, type EntryDef } from "../discovery/entries";
 import type { Logbook } from "../discovery/logbook";
@@ -195,9 +196,10 @@ export class LogbookView {
           if (!p.discovered) {
             return `<div class="kn-entry is-undiscovered"><div class="kn-thumb"></div><div><div class="kn-entry-name">Not yet scanned</div></div><span></span></div>`;
           }
+          const photo = logbookPhoto(e.id, p.discovered);
           const latin = e.latin ? `<div class="kn-entry-latin">${p.bio ? e.latin : "Unknown"}</div>` : "";
           return `<div class="kn-entry" data-entry="${e.id}" aria-selected="${e.id === this.selected}">
-            <div class="kn-thumb">${p.image ? `<img src="${p.image}" alt="">` : ""}</div>
+            <div class="kn-thumb">${photo ? `<img src="${photo}" alt="" loading="lazy">` : ""}</div>
             <div><div class="kn-entry-name">${name(e)}</div>${latin}</div>
             <span class="kn-entry-pct">${this.pct(e.id)}%</span></div>`;
         })
@@ -210,6 +212,7 @@ export class LogbookView {
     }
     const def = ENTRY_BY_ID.get(this.selected)!;
     const p = this.logbook.get(def.id);
+    const photo = logbookPhoto(def.id, p.discovered);
     const steps = stepsFor(def);
     const done = this.logbook.stepsDone(def.id);
     const complete = done === steps;
@@ -256,7 +259,7 @@ export class LogbookView {
               <dt>Time</dt><dd class="is-data">${p.hour !== undefined ? formatHour(p.hour) : unknown}</dd>
             </dl>
           </div>
-          <div class="lb-image">${p.image ? `<img src="${p.image}" alt="">` : `<span class="caption">No image</span>`}</div>
+          <div class="lb-image">${photo ? `<img src="${photo}" alt="${name}">` : `<span class="caption">No image</span>`}</div>
         </div>
       </section>
       <section class="lb-right">

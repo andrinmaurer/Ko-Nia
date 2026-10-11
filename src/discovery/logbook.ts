@@ -6,8 +6,6 @@ export interface EntryProgress {
   discovered: boolean;
   bio: boolean;
   observed: boolean;
-  /** JPEG data URL captured on the first scan. */
-  image?: string;
   /** Location entry id where it was first scanned. */
   locationId?: string;
   /** Game time of the first scan, in hours (0–24) plus day index. */
@@ -133,17 +131,17 @@ export class Logbook {
     return true;
   }
 
-  setImage(id: string, image: string): void {
-    this.progress[id].image = image;
-    this.changed();
-  }
-
   toJSON(): Record<string, EntryProgress> {
     return this.progress;
   }
 
   load(saved: Record<string, EntryProgress>): void {
-    for (const e of ENTRIES) if (saved[e.id]) this.progress[e.id] = { ...blank(), ...saved[e.id] };
+    for (const e of ENTRIES) {
+      if (!saved[e.id]) continue;
+      this.progress[e.id] = { ...blank(), ...saved[e.id] };
+      // Keep discovery progress from old saves, discard captured image data.
+      delete (this.progress[e.id] as EntryProgress & { image?: string }).image;
+    }
   }
 
   private changed(): void {
