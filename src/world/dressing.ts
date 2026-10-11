@@ -319,7 +319,6 @@ function buildGreenery(scene: Scene, r: () => number, put: Put, m: Mats): void {
     bush.scaling.set(s * (1 + r()), s * 0.7, s);
     bush.position.set(x, s * 0.2, z);
     put(bush, m.leaves, { cast: true });
-    leafShell(scene, put, m, bush);
   }
   // Rooftop saplings.
   for (const [x, z, y] of [[-55, 20, 12], [-28, 8, 15], [0, 12, 6], [37, 8, 9], [55, 12, 8], [-50, -10, 8], [16, -14, 6], [48, -12, 8]] as const) {
@@ -408,13 +407,13 @@ function buildUndergrowth(scene: Scene, r: () => number, m: Mats): void {
   const at = (list: Matrix[], x: number, z: number, scale: number, y = 0) =>
     list.push(Matrix.Compose(new Vector3(scale, scale * (0.8 + r() * 0.4), scale), Quaternion.FromEulerAngles(0, r() * Math.PI * 2, 0), new Vector3(x, y, z)));
   // Fern beds along the wall bases and kerbs.
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < 160; i++) {
     const x = -58 + r() * 116;
-    const z = (r() < 0.5 ? 1 : -1) * (3.6 + r() * 1.3);
-    if (clear(x, z)) at(ferns, x, z, 0.7 + r() * 0.9);
+    const z = (r() < 0.5 ? 1 : -1) * (3.9 + r() * 1);
+    if (clear(x, z)) at(ferns, x, z, 0.8 + r() * 0.9);
   }
   // Alley, shrine grounds and the rubble heaps: the wildest parts of the block.
-  for (let i = 0; i < 120; i++) at(ferns, -34 + r() * 72, -20.6 - r() * 4.8, 0.8 + r() * 1.1);
+  for (let i = 0; i < 70; i++) at(ferns, -34 + r() * 72, -20.6 - r() * 4.8, 0.8 + r() * 1.1);
   for (let i = 0; i < 60; i++) at(ferns, 46 + r() * 13, (r() < 0.5 ? 1 : -1) * (4.5 + r() * 4), 0.8 + r() * 1.2);
   for (let i = 0; i < 30; i++) at(ferns, -59 + r() * 4, (r() - 0.5) * 10, 0.8 + r(), 1 + r() * 2);
   // Giant leaves in clumps, mostly where the light reaches.
@@ -426,7 +425,7 @@ function buildUndergrowth(scene: Scene, r: () => number, m: Mats): void {
   for (let i = 0; i < 24; i++) at(leaves, -34 + r() * 72, -21 - r() * 4, 1.2 + r() * 1.3);
   for (let i = 0; i < 12; i++) at(leaves, 47 + r() * 12, (r() < 0.5 ? 1 : -1) * (5 + r() * 3), 1.3 + r() * 1.2);
 
-  scatter(scene, "ferns", m.fern, 1.4, 1.1, 3, ferns);
+  scatter(scene, "ferns", m.fern, 1.4, 1.1, 2, ferns);
   scatter(scene, "giantLeaves", m.bigLeaf, 1.6, 1.8, 2, leaves);
 }
 

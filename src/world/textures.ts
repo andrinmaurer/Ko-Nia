@@ -35,35 +35,38 @@ function paint(scene: Scene, name: string, size: number, draw: (c: Ctx, s: numbe
 }
 
 /**
- * Normal map derived from a painted texture's brightness: dark cracks, joints and
- * grime read as dents, so sunlight picks out the relief at grazing angles.
+ * Bakes relief into a painted texture: its brightness is treated as height, and
+ * each pixel is shaded as if lit from the upper left, so cracks, joints and grime
+ * read as dents. Baked once at load, so it costs nothing per frame (a real
+ * normal map halved the frame rate on Safari).
  */
-function reliefFrom(scene: Scene, source: DynamicTexture, strength: number): Texture {
+function bakeRelief(source: DynamicTexture, strength: number): void {
   const size = source.getSize().width;
-  const src = (source.getContext() as unknown as Ctx).getImageData(0, 0, size, size).data;
-  const tex = new DynamicTexture(`${source.name}:relief`, { width: size, height: size }, scene, true);
-  const c = tex.getContext() as unknown as Ctx;
-  const out = c.createImageData(size, size);
+  const c = source.getContext() as unknown as Ctx;
+  const img = c.getImageData(0, 0, size, size);
+  const d = img.data;
   const h = new Float32Array(size * size);
-  for (let i = 0; i < h.length; i++) h[i] = (src[i * 4] * 0.3 + src[i * 4 + 1] * 0.59 + src[i * 4 + 2] * 0.11) / 255;
+  for (let i = 0; i < h.length; i++) h[i] = (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 255;
   const at = (x: number, y: number) => h[((y + size) % size) * size + ((x + size) % size)];
+  // Light direction in texture space (x right, y down, z out of the surface).
+  const lx = -0.45;
+  const ly = -0.55;
+  const lz = 0.7;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const dx = (at(x + 1, y) - at(x - 1, y)) * strength;
       const dy = (at(x, y + 1) - at(x, y - 1)) * strength;
       const len = Math.hypot(dx, dy, 1);
+      const lit = (-dx * lx - dy * ly + lz) / len / lz;
+      const k = Math.min(1.35, Math.max(0.55, 0.35 + 0.65 * lit));
       const o = (y * size + x) * 4;
-      out.data[o] = (-dx / len) * 127 + 128;
-      out.data[o + 1] = (dy / len) * 127 + 128;
-      out.data[o + 2] = (1 / len) * 127 + 128;
-      out.data[o + 3] = 255;
+      d[o] = Math.min(255, d[o] * k);
+      d[o + 1] = Math.min(255, d[o + 1] * k);
+      d[o + 2] = Math.min(255, d[o + 2] * k);
     }
   }
-  c.putImageData(out, 0, 0);
-  tex.update(false);
-  tex.wrapU = Texture.WRAP_ADDRESSMODE;
-  tex.wrapV = Texture.WRAP_ADDRESSMODE;
-  return tex;
+  c.putImageData(img, 0, 0);
+  source.update(false);
 }
 
 const rgba = (r: number, g: number, b: number, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
@@ -713,7 +716,7 @@ export type Surface =
   | "rubble"
   | "solar";
 
-/** `relief` is the normal-map strength; 0 leaves the surface flat. */
+/** `relief` is the strength of the baked-in relief shading; 0 leaves the surface flat. */
 const SURFACES: Record<Surface, { draw: (c: Ctx, s: number, r: () => number) => void; size?: number; spec?: number; relief?: number }> = {
   asphalt: { draw: asphalt, spec: 0.3, relief: 4 },
   sidewalk: { draw: sidewalk, spec: 0.12, relief: 5 },
@@ -745,10 +748,7 @@ export function surface(scene: Scene, kind: Surface): StandardMaterial {
   const m = new StandardMaterial(name, scene);
   const diffuse = paint(scene, `tex:${kind}`, def.size ?? 512, def.draw);
   m.diffuseTexture = diffuse;
-  if (def.relief) {
-    m.bumpTexture = reliefFrom(scene, diffuse, def.relief);
-    m.bumpTexture.level = 0.8;
-  }
+  if (def.relief) bakeRelief(diffuse, def.relief);
   const spec = def.spec ?? 0.04;
   m.specularColor = new Color3(spec, spec, spec);
   m.specularPower = 48;
@@ -780,5 +780,7 @@ export function card(scene: Scene, kind: Card): StandardMaterial {
   m.backFaceCulling = false;
   m.specularColor = Color3.Black();
   m.alphaCutOff = 0.4;
+  // Leaf shells wrap closed canopies: only their outside is ever seen.
+  if (kind === "foliage") m.backFaceCulling = true;
   return m;
 }
