@@ -8,7 +8,7 @@ import {
   Scene,
   ShadowGenerator,
   Vector3,
-} from "@babylonjs/core";
+} from "./babylon";
 import type { Scannable, GameContext, LifeForm } from "./game/context";
 import { DayCycle } from "./game/dayCycle";
 import { Input } from "./input";

@@ -6,7 +6,7 @@ import {
   ShadowGenerator,
   StandardMaterial,
   Vector3,
-} from "@babylonjs/core";
+} from "../babylon";
 
 /**
  * Greybox of "Shrine Street", the MVP block described in

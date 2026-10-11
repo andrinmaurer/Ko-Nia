@@ -1,4 +1,4 @@
-import type { Vector3 } from "@babylonjs/core";
+import type { Vector3 } from "../babylon";
 
 interface Zone {
   id: string;

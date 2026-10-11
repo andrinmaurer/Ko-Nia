@@ -1,4 +1,4 @@
-import { Color3, Scene, StandardMaterial } from "@babylonjs/core";
+import { Color3, Scene, StandardMaterial } from "../../babylon";
 
 /** Matte placeholder material, shared by name so repeated creatures reuse it. */
 export function mat(scene: Scene, name: string, r: number, g: number, b: number, specular = 0.05): StandardMaterial {

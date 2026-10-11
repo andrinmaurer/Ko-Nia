@@ -1,4 +1,4 @@
-import { Ray, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
+import { Ray, Scene, UniversalCamera, Vector3 } from "../babylon";
 import type { Input } from "../input";
 import type { Robot } from "./robot";
 

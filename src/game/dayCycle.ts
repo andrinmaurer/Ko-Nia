@@ -1,4 +1,4 @@
-import { Vector3 } from "@babylonjs/core";
+import { Vector3 } from "../babylon";
 
 /** One full in-game day lasts this many real seconds (60 minutes, per the design docs). */
 export const DAY_LENGTH_SECONDS = 3600;

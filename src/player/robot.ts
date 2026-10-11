@@ -8,7 +8,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3,
-} from "@babylonjs/core";
+} from "../babylon";
 import type { Input } from "../input";
 
 const WALK_SPEED = 4;

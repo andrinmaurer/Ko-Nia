@@ -1,4 +1,4 @@
-import type { AbstractMesh, Scene, Vector3 } from "@babylonjs/core";
+import type { AbstractMesh, Scene, Vector3 } from "../babylon";
 import type { Logbook } from "../discovery/logbook";
 import type { Robot } from "../player/robot";
 import type { RobotStatus } from "../player/status";

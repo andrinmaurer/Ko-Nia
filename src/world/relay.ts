@@ -1,4 +1,4 @@
-import { Color3, Mesh, Scene, StandardMaterial, Vector3 } from "@babylonjs/core";
+import { Color3, Mesh, Scene, StandardMaterial, Vector3 } from "../babylon";
 
 const USE_RANGE = 3.5;
 
