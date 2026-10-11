@@ -1,13 +1,12 @@
 import { ENTRIES, ENTRY_BY_ID, stepsFor } from "./entries";
 
-export type ScanMode = "visual" | "bio";
+import type { UpgradeSave } from "../game/upgrades";
+export type ScanMode = "visual" | "bio" | "audio" | "night" | "thermal" | "genetic" | "radiation";
 
 export interface EntryProgress {
   discovered: boolean;
   bio: boolean;
   observed: boolean;
-  /** JPEG data URL captured on the first scan. */
-  image?: string;
   /** Location entry id where it was first scanned. */
   locationId?: string;
   /** Game time of the first scan, in hours (0–24) plus day index. */
@@ -27,8 +26,14 @@ const SAVE_KEY = "konia.save.v1";
 
 export interface SaveData {
   version: 1;
+  upgrades?: UpgradeSave;
   logbook: Record<string, EntryProgress>;
+  /** Shrine Street's station; kept for saves from before Temple Hill. */
   relayActivated: boolean;
+  /** Ids of every activated Relay Station. */
+  relays?: string[];
+  /** The station the robot respawns at. */
+  homeRelay?: string;
   day: number;
   hours: number;
 }
@@ -39,6 +44,10 @@ export interface SaveData {
  */
 export class Logbook {
   progress: Record<string, EntryProgress> = {};
+  /** Entries that learned something since the player last looked at their page. Not saved. */
+  readonly unread = new Set<string>();
+  /** The most recently updated unread entry, opened first in the Logbook. */
+  lastUpdated: string | undefined;
   private listeners: (() => void)[] = [];
 
   constructor() {
@@ -101,7 +110,7 @@ export class Logbook {
     }
     p.scanHours.push(when.hour);
     if (stepsFor(def) === 3) {
-      if (mode === "bio" && !p.bio) {
+      if ((mode === "bio" || mode === "genetic") && !p.bio) {
         p.bio = true;
         learned.push("ancestry");
       }
@@ -112,6 +121,10 @@ export class Logbook {
     }
     if (learned.length > 0 && this.isComplete(id)) learned.push("complete");
     if (learned.length === 0) learned.push("nothing");
+    else {
+      this.unread.add(id);
+      this.lastUpdated = id;
+    }
     this.changed();
     return learned;
   }
@@ -128,9 +141,10 @@ export class Logbook {
     return true;
   }
 
-  setImage(id: string, image: string): void {
-    this.progress[id].image = image;
-    this.changed();
+  /** Silent on purpose: the Logbook calls it while rendering. */
+  markRead(id: string): void {
+    if (!this.unread.delete(id)) return;
+    if (this.lastUpdated === id) this.lastUpdated = [...this.unread].pop();
   }
 
   toJSON(): Record<string, EntryProgress> {
@@ -138,7 +152,12 @@ export class Logbook {
   }
 
   load(saved: Record<string, EntryProgress>): void {
-    for (const e of ENTRIES) if (saved[e.id]) this.progress[e.id] = { ...blank(), ...saved[e.id] };
+    for (const e of ENTRIES) {
+      if (!saved[e.id]) continue;
+      this.progress[e.id] = { ...blank(), ...saved[e.id] };
+      // Keep discovery progress from old saves, discard captured image data.
+      delete (this.progress[e.id] as EntryProgress & { image?: string }).image;
+    }
   }
 
   private changed(): void {

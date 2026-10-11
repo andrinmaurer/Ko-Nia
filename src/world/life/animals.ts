@@ -1,6 +1,5 @@
 import {
   AbstractMesh,
-  Color3,
   Mesh,
   MeshBuilder,
   ShadowGenerator,
@@ -10,6 +9,7 @@ import {
 } from "../../babylon";
 import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { mat } from "./materials";
+import { Form, organic, hookbillVisual, drainbackVisual, mantisVisual, predecessorVisual } from "./visuals";
 
 /** The MVP animals plus the dangerous Vault Mantis. */
 export function createAnimals(ctx: GameContext, shadows: ShadowGenerator): LifeForm[] {
@@ -26,6 +26,7 @@ class Hookbill implements LifeForm {
   scannables: Scannable[];
   private readonly node: TransformNode;
   private readonly trinket: Mesh;
+  private readonly wings: Mesh[];
   private state: BirdState = "perched";
   private timer: number;
   private flight?: { from: Vector3; to: Vector3; t: number; duration: number };
@@ -33,38 +34,23 @@ class Hookbill implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator, private readonly nest: Vector3, index: number) {
     const scene = ctx.scene;
-    const black = mat(scene, "hookbillFeathers", 0.08, 0.08, 0.1, 0.5);
-    black.specularColor = new Color3(0.55, 0.35, 0.2); // copper sheen
-    const beakMat = mat(scene, "hookbillBeak", 0.35, 0.33, 0.3);
-    const nestMat = mat(scene, "hookbillNest", 0.35, 0.25, 0.15);
-
-    const nestMesh = MeshBuilder.CreateTorus(`hookbillNest${index}`, { diameter: 0.7, thickness: 0.2, tessellation: 12 }, scene);
-    nestMesh.position.copyFrom(nest);
-    nestMesh.material = nestMat;
-    nestMesh.isPickable = false;
-
+    const nestMat = organic(scene, "hookbill-nest", "#65513a");
+    const nestForm = new Form(scene, `hookbillNest${index}`);
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      nestForm.branch([[Math.cos(a)*.28,0,Math.sin(a)*.28],[Math.cos(a+.5)*.34,.08,Math.sin(a+.5)*.34]],.016,nestMat);
+    }
+    for (const mesh of nestForm.finish()) { mesh.position.copyFrom(nest); mesh.isPickable=false; }
     this.node = new TransformNode(`hookbill${index}`, scene);
     this.node.position.copyFrom(nest);
-    const body = MeshBuilder.CreateSphere(`hookbillBody${index}`, { diameter: 1, segments: 8 }, scene);
-    body.scaling.set(0.35, 0.32, 0.62);
-    body.position.y = 0.25;
-    const head = MeshBuilder.CreateSphere(`hookbillHead${index}`, { diameter: 0.24, segments: 8 }, scene);
-    head.position.set(0, 0.45, 0.3);
-    const beak = MeshBuilder.CreateCylinder(`hookbillBeak${index}`, { diameterTop: 0, diameterBottom: 0.09, height: 0.28 }, scene);
-    beak.rotation.x = Math.PI / 2 + 0.4;
-    beak.position.set(0, 0.42, 0.5);
-    const parts = [body, head, beak];
-    body.material = black;
-    head.material = black;
-    beak.material = beakMat;
-    for (const p of parts) {
-      p.parent = this.node;
-      shadows.addShadowCaster(p);
-    }
+    const visual = hookbillVisual(scene, this.node);
+    const parts = visual.parts;
+    this.wings = visual.wings;
+    for (const p of parts) shadows.addShadowCaster(p);
     this.trinket = MeshBuilder.CreateCylinder(`hookbillTrinket${index}`, { diameter: 0.12, height: 0.03 }, scene);
     this.trinket.material = mat(scene, "trinket", 0.8, 0.75, 0.6, 0.9);
     this.trinket.parent = this.node;
-    this.trinket.position.set(0, 0.36, 0.62);
+    this.trinket.position.set(0, 0.54, 0.5);
     this.trinket.isVisible = false;
 
     // Stagger the birds so their trips overlap less.
@@ -82,6 +68,10 @@ class Hookbill implements LifeForm {
   update(dt: number): void {
     const robotDist = Vector3.Distance(this.ctx.robot.position, this.node.position);
     const night = this.ctx.time.isNight;
+    const flying = this.state === "flyOut" || this.state === "carry" || this.state === "flee";
+    this.wings.forEach((wing, i) => {
+      wing.rotation.z = (i === 0 ? -1 : 1) * (flying ? .9 + Math.sin(performance.now()*.018)*.45 : .08);
+    });
     this.timer -= dt;
 
     switch (this.state) {
@@ -164,27 +154,26 @@ class LanternMoths implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const wingMat = mat(scene, "mothWing", 0.55, 0.52, 0.45);
-    wingMat.alpha = 0.85;
-    wingMat.backFaceCulling = false;
+    const wingMat = organic(scene,"moth-wing","#bfb5bd","leaf");
     this.markMat = mat(scene, "mothMark", 0.3, 0.3, 0.25);
     for (let i = 0; i < 12; i++) {
       const node = new TransformNode(`moth${i}`, scene);
       const rest = new Vector3(-5.5 + (i % 3) * 0.9, 5.5, -2.8 + Math.floor(i / 3) * 1.9);
       node.position.copyFrom(rest);
       const wings: Mesh[] = [];
-      for (const side of [-1, 1]) {
-        const wing = MeshBuilder.CreatePlane(`mothWing${i}${side}`, { width: 0.16, height: 0.12 }, scene);
-        wing.rotation.x = Math.PI / 2;
-        wing.position.x = side * 0.08;
-        wing.parent = node;
-        wing.material = wingMat;
-        wings.push(wing);
+      for (const side of [-1,1]) {
+        const form = new Form(scene,"lantern-moth-wing");
+        const fore=form.ellipsoid([side*.045,0,.028],[.095,.007,.12],wingMat,6);fore.rotation.y=side*.3;
+        const hind=form.ellipsoid([side*.035,0,-.045],[.08,.007,.085],wingMat,6);hind.rotation.y=-side*.3;
+        const wing=form.finish()[0];wing.parent=node;wing.position.x=side*.014;wings.push(wing);
       }
-      const body = MeshBuilder.CreateSphere(`mothBody${i}`, { diameter: 0.06, segments: 4 }, scene);
-      body.scaling.z = 2;
-      body.parent = node;
-      body.material = this.markMat;
+      const form=new Form(scene,"lantern-moth-body");
+      form.ellipsoid([0,0,0],[.025,.028,.085],this.markMat,6);
+      for(const side of [-1,1]) {
+        form.branch([[side*.006,0,.035],[side*.025,.012,.075]],.002,this.markMat);
+        for(let j=0;j<3;j++) form.branch([[side*.008,-.007,j*.022-.023],[side*.024,-.024,j*.025-.03]],.0015,this.markMat);
+      }
+      const body=form.finish(node)[0];
       this.moths.push({ node, wings, rest, phase: i * 0.7, radius: 1 + (i % 4) * 0.45 });
       this.scannables.push({
         entryId: "lantern-moth",
@@ -232,33 +221,9 @@ class Drainback implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const skin = mat(scene, "drainbackSkin", 0.4, 0.33, 0.3);
-    const plate = mat(scene, "drainbackPlate", 0.32, 0.34, 0.32, 0.3);
     this.node = new TransformNode("drainback", scene);
-    const body = MeshBuilder.CreateSphere("drainbackBody", { diameter: 1, segments: 8 }, scene);
-    body.scaling.set(0.45, 0.35, 0.8);
-    body.position.y = 0.25;
-    body.material = skin;
-    const head = MeshBuilder.CreateSphere("drainbackHead", { diameter: 0.3, segments: 8 }, scene);
-    head.scaling.z = 1.4;
-    head.position.set(0, 0.28, 0.5);
-    head.material = skin;
-    const tail = MeshBuilder.CreateCylinder("drainbackTail", { diameterTop: 0.02, diameterBottom: 0.07, height: 0.7 }, scene);
-    tail.rotation.x = -Math.PI / 2 + 0.2;
-    tail.position.set(0, 0.18, -0.65);
-    tail.material = skin;
-    this.parts.push(body, head, tail);
-    for (let i = 0; i < 4; i++) {
-      const p = MeshBuilder.CreateBox(`drainbackPlate${i}`, { width: 0.5, height: 0.06, depth: 0.24 }, scene);
-      p.position.set(0, 0.43 - Math.abs(i - 1.5) * 0.03, -0.25 + i * 0.18);
-      p.rotation.x = -0.15;
-      p.material = plate;
-      this.parts.push(p);
-    }
-    for (const m of this.parts) {
-      m.parent = this.node;
-      shadows.addShadowCaster(m);
-    }
+    this.parts.push(...drainbackVisual(scene, this.node));
+    for (const m of this.parts) shadows.addShadowCaster(m);
     this.node.position.copyFrom(Drainback.DRAIN);
     this.setVisible(false);
     this.scannables = [
@@ -358,6 +323,7 @@ class VaultMantis implements LifeForm {
   scannables: Scannable[];
   private readonly node: TransformNode;
   private readonly arms: Mesh[] = [];
+  private readonly wings: Mesh[] = [];
   private readonly body: TransformNode;
   private state: MantisState = "tending";
   private timer = 0;
@@ -366,48 +332,21 @@ class VaultMantis implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const camo = mat(scene, "mantisCamo", 0.36, 0.42, 0.33);
-    const eggMat = mat(scene, "mantisEgg", 0.62, 0.52, 0.38);
-    const egg = MeshBuilder.CreateSphere("mantisEggCase", { diameter: 0.7, segments: 8 }, scene);
-    egg.scaling.set(1, 0.7, 1.4);
-    egg.position.set(17.8, 0.25, 19);
-    egg.material = eggMat;
-    egg.isPickable = false;
-
+    const eggMat = organic(scene, "mantis-ootheca", "#b7aa87");
+    const eggForm = new Form(scene, "mantisEggCase");
+    eggForm.ellipsoid([17.8,.48,19], [.4,.65,.25], eggMat);
+    for(let i=0;i<14;i++) eggForm.ellipsoid([17.8 + Math.sin(i*2.4)*.14,.2+i*.04,18.89],[.12,.06,.055],eggMat,4);
+    for(const egg of eggForm.finish()) egg.isPickable=false;
     this.node = new TransformNode("vaultMantis", scene);
     this.node.position.copyFrom(VaultMantis.HOME);
-    this.node.rotation.y = Math.PI; // faces the partition door (-z)
+    this.node.rotation.y = Math.PI;
     this.body = new TransformNode("vaultMantisBody", scene);
     this.body.parent = this.node;
-
-    const parts: Mesh[] = [];
-    const add = (mesh: Mesh, parent: TransformNode = this.body) => {
-      mesh.material = camo;
-      mesh.parent = parent;
-      shadows.addShadowCaster(mesh);
-      parts.push(mesh);
-      return mesh;
-    };
-    const abdomen = add(MeshBuilder.CreateSphere("mantisAbdomen", { diameter: 1, segments: 8 }));
-    abdomen.scaling.set(0.45, 0.35, 1.1);
-    abdomen.position.set(0, 0.55, -0.55);
-    const thorax = add(MeshBuilder.CreateCylinder("mantisThorax", { diameterTop: 0.14, diameterBottom: 0.22, height: 0.8 }));
-    thorax.rotation.x = 0.6;
-    thorax.position.set(0, 0.85, 0.15);
-    const head = add(MeshBuilder.CreateSphere("mantisHead", { diameter: 0.32, segments: 6 }));
-    head.scaling.set(1.3, 0.8, 0.8);
-    head.position.set(0, 1.22, 0.42);
-    for (const side of [-1, 1]) {
-      const arm = add(MeshBuilder.CreateBox(`mantisArm${side}`, { width: 0.08, height: 0.6, depth: 0.1 }));
-      arm.position.set(side * 0.16, 0.9, 0.5);
-      arm.rotation.x = -0.5;
-      this.arms.push(arm);
-      for (const z of [-0.6, 0, 0.4]) {
-        const leg = add(MeshBuilder.CreateCylinder(`mantisLeg${side}${z}`, { diameter: 0.05, height: 0.9 }));
-        leg.position.set(side * 0.35, 0.35, z - 0.2);
-        leg.rotation.z = side * 0.9;
-      }
-    }
+    const visual = mantisVisual(scene, this.body);
+    const parts = visual.parts;
+    this.arms.push(...visual.arms);
+    this.wings.push(...visual.wings);
+    for(const m of parts) shadows.addShadowCaster(m);
 
     this.scannables = [
       {
@@ -491,6 +430,10 @@ class VaultMantis implements LifeForm {
   private pose(raised: number, dt: number): void {
     for (const arm of this.arms) arm.rotation.x += (-0.5 - raised * 1.2 - arm.rotation.x) * Math.min(1, dt * 10);
     this.body.position.y += (raised * 0.15 - this.body.position.y) * Math.min(1, dt * 10);
+    this.wings.forEach((wing, i) => {
+      const spread = raised * .65 + (this.state === "warning" ? Math.sin(performance.now()*.06)*.08 : 0);
+      wing.rotation.z += ((i === 0 ? -1 : 1)*spread - wing.rotation.z)*Math.min(1,dt*12);
+    });
   }
 
   private returnHome(dt: number): void {
@@ -505,38 +448,18 @@ class VaultMantis implements LifeForm {
 
 export function createStaticDiscoveries(ctx: GameContext): Scannable[] {
   const scene = ctx.scene;
-  const rust = mat(scene, "predecessorShell", 0.5, 0.4, 0.32, 0.2);
-  const dead = mat(scene, "predecessorLens", 0.1, 0.12, 0.13);
-  const ivy = mat(scene, "ivy", 0.45, 0.2, 0.12);
   const node = new TransformNode("predecessor", scene);
   node.position.set(-4.6, 6, 3.6);
-  node.rotation.y = 0.4;
-  const body = MeshBuilder.CreateCapsule("predecessorBody", { height: 0.85, radius: 0.32 }, scene);
-  body.rotation.z = Math.PI / 2;
-  body.position.y = 0.32;
-  body.material = rust;
-  const head = MeshBuilder.CreateSphere("predecessorHead", { diameter: 0.5 }, scene);
-  head.position.set(0.65, 0.3, 0.1);
-  head.material = rust;
-  const lens = MeshBuilder.CreateCylinder("predecessorLens", { diameter: 0.2, height: 0.08 }, scene);
-  lens.rotation.z = Math.PI / 2;
-  lens.position.set(0.9, 0.32, 0.1);
-  lens.material = dead;
-  const vines = MeshBuilder.CreateBox("predecessorIvy", { width: 1.2, height: 0.05, depth: 0.7 }, scene);
-  vines.position.set(0.1, 0.62, 0);
-  vines.rotation.x = 0.2;
-  vines.material = ivy;
-  const parts = [body, head, lens, vines];
-  for (const p of parts) p.parent = node;
-  body.checkCollisions = true;
+  node.rotation.y = .4;
+  const parts = predecessorVisual(scene,node);
 
   const byName = (...names: string[]): AbstractMesh[] =>
     names.map((n) => scene.getMeshByName(n)).filter((m): m is AbstractMesh => m !== null);
   const at = (meshes: AbstractMesh[]) => () => meshes[0].getAbsolutePosition();
 
-  const vending = byName("shopVending");
-  const menu = byName("shopMenuBoard");
-  const torii = byName("toriiKasagi", "toriiNuki", "toriiPillar-2.6", "toriiPillar2.6");
+  const vending = scene.meshes.filter(m => m.name === "shopVending" || m.name.startsWith("shopVending:"));
+  const menu = scene.meshes.filter(m => m.name === "shopMenuBoard" || m.name.startsWith("shopMenuBoard:"));
+  const torii = scene.meshes.filter(m => m.name.startsWith("torii"));
   const statues = byName("statue-3.5", "statue3.5");
   return [
     { entryId: "origin-predecessor", meshes: parts, getPosition: () => node.position.add(new Vector3(0, 0.3, 0)) },

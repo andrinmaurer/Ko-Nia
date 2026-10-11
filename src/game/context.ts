@@ -13,12 +13,17 @@ export interface GameContext {
   time: DayCycle;
   wind: Wind;
   logbook: Logbook;
+  upgrades: import("./upgrades").Upgrades;
   /** Horizontal robot speed in m/s this frame. */
   robotSpeed: number;
   /** Shows a sound caption at the bottom of the screen (no audio yet). */
   caption(text: string, seconds?: number): void;
   /** Damages the robot and pushes it in `push` direction. */
   hitRobot(amount: number, push: Vector3): void;
+  /** Seconds the scanner stays clogged by spores. */
+  sensorsJammed: number;
+  /** The robot was caught in a spore cloud. */
+  sporeHit(): void;
 }
 
 /** Something the scanner can target. Several scannables may share one Logbook entry. */

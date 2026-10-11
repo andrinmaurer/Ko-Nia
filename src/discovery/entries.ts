@@ -1,15 +1,18 @@
 /**
- * Every Logbook entry in the MVP block. Content comes from
- * docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md.
+ * Every Logbook entry. Shrine Street content comes from
+ * docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md, Temple Hill from
+ * docs/blocks/02_TEMPLE_HILL_PROPOSAL.md, the Flooded Arcade from
+ * docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md.
  *
  * Organisms take three steps: first scan (page created), Biological scan,
  * and one behavior observation. Everything else is complete after one scan.
  */
 
-export type Category = "flora" | "fauna" | "locations" | "artifacts" | "origin";
+export type Category = "flora" | "fungi" | "fauna" | "locations" | "artifacts" | "origin";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   flora: "Biology · Flora",
+  fungi: "Biology · Fungi",
   fauna: "Biology · Fauna",
   locations: "Locations",
   artifacts: "Human Artifacts",
@@ -105,6 +108,46 @@ export const ENTRIES: EntryDef[] = [
     colonyNote: "The only choir left in the city. It sings when nobody asks.",
     danger: "none",
   },
+  {
+    id: "temple-cedar",
+    category: "flora",
+    name: "Temple Cedar",
+    latin: "Cryptomeria colossa",
+    observation: "Amber at sunset",
+    appearance: "A colossal conifer that grew up through the roof of the temple's main hall. Beads of resin cling to its bark.",
+    ancestry: "Descendant of a cedar. Its roots reach the water held in the hill under the temple, which lets it grow this tall.",
+    behavior: "At sunset the resin beads catch the low light and glow amber. Its seeds drift down onto the pond, where the Gilded Carp eat them.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "The resin seems to be waiting for a particular light." },
+    colonyNote: "The tallest thing for kilometres. It was here before the roof fell in and it will be here after you leave. No pressure.",
+    danger: "none",
+  },
+  // Fungi
+  {
+    id: "scroll-cap",
+    category: "fungi",
+    name: "Scroll Cap",
+    latin: "Papyromyces lamellatus",
+    observation: "Feeding on scrolls",
+    appearance: "Pale fungus with thin, layered caps that look like stacked paper slips. Grows on old wood in the main hall.",
+    ancestry: "Descendant of a bracket fungus. It breaks down wood and paper and leaves nothing behind but dust.",
+    behavior: "It prefers paper to wood: the thickest growth is on the shelves where scrolls were stored.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "It grows on wood here. Is there something it likes better?" },
+    colonyNote: "It is reading the library. Very slowly, and from the outside in.",
+    danger: "none",
+  },
+  {
+    id: "censer-puffball",
+    category: "fungi",
+    name: "Censer Puffball",
+    latin: "Lycoperdon turibulum",
+    observation: "Releasing spores",
+    appearance: "Swollen ochre puffballs crowding the dark half of the main hall.",
+    ancestry: "Descendant of a puffball. The skin tightens as it ripens, and any disturbance makes it burst.",
+    behavior: "Swells and hisses when something comes close, then bursts into a cloud of spores. The draught of a wind gust sets them off too. The spores clog sensors.",
+    hints: { bio: "Closer analysis needed (Biological scan). Do not rush it.", observe: "They burst when the wind gusts through the hall. Watch one go off, from a safe distance." },
+    colonyNote: "Not dangerous, technically. Just very rude to your sensors.",
+    danger: "high",
+  },
   // Fauna
   {
     id: "hookbill",
@@ -158,6 +201,45 @@ export const ENTRIES: EntryDef[] = [
     colonyNote: "Not a fan of visitors. Please do not get disassembled.",
     danger: "high",
   },
+  {
+    id: "gilded-carp",
+    category: "fauna",
+    name: "Gilded Carp",
+    latin: "Cyprinus auratus magnus",
+    observation: "Surfacing to feed",
+    appearance: "A fish over a metre long, covered in overlapping gold plates. Stays deep in the temple pond.",
+    ancestry: "Descendant of an ornamental carp. The plates are thickened scales.",
+    behavior: "Rises to gulp the cedar seeds floating on the surface, but only when everything around the pond is still.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "Stand still on the bridge and wait." },
+    colonyNote: "Someone once fed its ancestors from this bridge. It still remembers. Or the seeds are just there.",
+    danger: "none",
+  },
+  {
+    id: "tithe-ant",
+    category: "fauna",
+    name: "Tithe Ant",
+    latin: "Formica decimaria",
+    observation: "Back at the mound",
+    appearance: "Finger-long ants marching in tidy columns across the temple courtyard.",
+    ancestry: "Descendant of an ant. Larger and more organized than any ant before.",
+    behavior: "Strips fallen fruit and leftovers and carries every piece along the same route to a mound under the offering racks.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "Where are they all going? Follow the column." },
+    colonyNote: "Collects a share of everything that falls. Humans had a word for that.",
+    danger: "none",
+  },
+  {
+    id: "moss-tanuki",
+    category: "fauna",
+    name: "Moss Tanuki",
+    latin: "Nyctereutes muscosus",
+    observation: "Raiding the offering box",
+    appearance: "Round, dog-sized animal with a masked face and a back overgrown with living moss. Sleeps on the temple gate.",
+    ancestry: "Descendant of a raccoon dog. The moss grows in its thick fur and hides it on rooftops.",
+    behavior: "Forages at night and is curious: it follows the robot at a distance. Its favourite stop is the hall's offering box.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "It sleeps all day. What does it get up to at night?" },
+    colonyNote: "It has decided you are interesting. We are not sure it is right.",
+    danger: "none",
+  },
   // Locations
   {
     id: "loc-shrine-street",
@@ -186,6 +268,48 @@ export const ENTRIES: EntryDef[] = [
     name: "Neighborhood Shrine",
     appearance: "A small shrine behind a leaning red gate, guarded by two moss-covered statues.",
     colonyNote: "A quiet place. Even the birds keep their voices down here.",
+  },
+  {
+    id: "loc-stair-lane",
+    category: "locations",
+    name: "Stair Lane",
+    appearance: "Worn stone steps climbing from the shrine through a ruined building up the hill.",
+    colonyNote: "Stairs. Humans built them everywhere. You may begin to see why the robots came later.",
+  },
+  {
+    id: "loc-temple-gate",
+    category: "locations",
+    name: "Temple Gate",
+    appearance: "A huge wooden gate, its north half collapsed into a heap of beams and tiles.",
+    colonyNote: "Gates are for keeping things out. This one gave up.",
+  },
+  {
+    id: "loc-temple-courtyard",
+    category: "locations",
+    name: "Temple Courtyard",
+    appearance: "A wide gravel courtyard taken over by moss and ferns, lined with stone lanterns.",
+    colonyNote: "Large, flat, empty. The humans liked to stand around in places like this.",
+  },
+  {
+    id: "loc-main-hall",
+    category: "locations",
+    name: "Main Hall",
+    appearance: "The temple's great wooden hall. Half its roof fell in where a cedar grew through it; the other half is dark.",
+    colonyNote: "The biggest room in the neighbourhood. Something lives in the dark half. Several somethings.",
+  },
+  {
+    id: "loc-pagoda",
+    category: "locations",
+    name: "Pagoda",
+    appearance: "A five-storey tower with broken eaves, the highest point of the temple grounds.",
+    colonyNote: "A tower with no use we can identify, except climbing it. We approve.",
+  },
+  {
+    id: "loc-koi-pond",
+    category: "locations",
+    name: "Koi Pond",
+    appearance: "An old ornamental pond, now a shallow wetland with an island and an arched red bridge.",
+    colonyNote: "Water, standing still on purpose. Somebody liked looking at it.",
   },
   // Human artifacts
   {
@@ -216,6 +340,42 @@ export const ENTRIES: EntryDef[] = [
     appearance: "A stone figure on a pedestal, one of a pair flanking the shrine path.",
     colonyNote: "It has been guarding for a very long time. Nobody told it to stop.",
   },
+  {
+    id: "art-stone-lantern",
+    category: "artifacts",
+    name: "Stone Lantern",
+    appearance: "A carved stone post with a small window box on top, one of a row along the temple path.",
+    colonyNote: "A lamp made of stone. The light went out a while ago. The stone did not notice.",
+  },
+  {
+    id: "art-temple-bell",
+    category: "artifacts",
+    name: "Temple Bell",
+    appearance: "A huge bronze bell, green with age, lying on its side under the ruins of its tower.",
+    colonyNote: "It was hit with a log at regular intervals. We do not ask why.",
+  },
+  {
+    id: "art-offering-box",
+    category: "artifacts",
+    name: "Offering Box",
+    appearance: "A wooden chest with a slatted top in front of the main hall. Something has been scratching at it.",
+    colonyNote: "People dropped things in. Something else takes things out. Commerce.",
+  },
+  {
+    id: "art-scroll-shelf",
+    category: "artifacts",
+    name: "Scroll Shelf",
+    appearance: "Shelves of rolled paper in the main hall. Most of the scrolls are fused together or eaten away.",
+    colonyNote: "Records of something. The fungus got to read them first.",
+  },
+  {
+    id: "art-wish-wall",
+    category: "artifacts",
+    name: "Wish Wall",
+    appearance:
+      "Thousands of small wooden plaques covering the end wall of the main hall, kept by the dry dark. A few are still readable in fragments: \"...let the water go down...\", \"...that the others come back for us...\", \"...one more spring here...\".",
+    colonyNote: "Many requests, one address. We could not find out whether any were answered.",
+  },
   // Origin
   {
     id: "origin-predecessor",
@@ -224,12 +384,169 @@ export const ENTRIES: EntryDef[] = [
     appearance: "A deactivated robot, half-buried in ivy at the top of the overpass. Its design is an older version of your own.",
     colonyNote: "That is not you. Please continue your work.",
   },
+  {
+    id: "origin-mark",
+    category: "origin",
+    name: "Predecessor's Mark",
+    appearance: "A sign scratched into the bronze at the top of the pagoda, in the same pattern your own unit uses to mark a surveyed point. It points further into the city.",
+    colonyNote: "Someone was here before you and kept going. You should keep going too. Unrelated.",
+  },
+  // --- Flooded Arcade ----------------------------------------------------------
+  {
+    id: "glasswort-reed",
+    category: "flora",
+    name: "Glasswort Reed",
+    latin: "Phragmites vitrea",
+    observation: "Rooted in glass",
+    appearance: "Dense reed beds standing in the flooded arcade, their seed heads catching the light like splinters.",
+    ancestry: "Descendant of a common reed. Its roots dissolve silica, which hardens the stems.",
+    behavior: "Grows best on heaps of fallen roof glass, feeding on the shards as they weather away.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "The thickest beds all grow on the same thing. What is under them?" },
+    colonyNote: "It is eating the roof. Slowly, and from the bottom up.",
+    danger: "none",
+  },
+  {
+    id: "gutter-lily",
+    category: "flora",
+    name: "Gutter Lily",
+    latin: "Nymphaea timida",
+    observation: "Leaves reopening",
+    appearance: "Floating leaves with dark red undersides and one pale flower, drifting where the water is still.",
+    ancestry: "Descendant of a water lily. The leaves are hinged along the midrib.",
+    behavior: "Folds its leaves shut the moment the water is stirred, and opens them again slowly once everything is calm.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "It closes when you splash nearby. Be patient." },
+    colonyNote: "Shy. We have no advice to offer it.",
+    danger: "none",
+  },
+  {
+    id: "shopfront-moss",
+    category: "flora",
+    name: "Shopfront Moss",
+    latin: "Bryum clausurae",
+    observation: "Shutter pulled open",
+    appearance: "Thick, springy moss mats growing over the rolled-down shop shutters.",
+    ancestry: "Descendant of a cushion moss. It holds so much water that its weight bends metal.",
+    behavior: "Swells and shrinks with the wet and dry seasons until the shutter it grows on gives way.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "One shop is open that should not be. Look along the shutters." },
+    colonyNote: "Closed for two thousand years. Reopened by moss.",
+    danger: "none",
+  },
+  {
+    id: "wader-heron",
+    category: "fauna",
+    name: "Wader Heron",
+    latin: "Ardea stagnalis",
+    observation: "Catching a fish",
+    appearance: "Tall grey heron with a pale neck and a dagger beak, stalking slowly through the arcade's shallows.",
+    ancestry: "Descendant of a grey heron. Its legs are longer, for deeper water.",
+    behavior: "Stands still for a long time, then spears fish with one fast strike. Flies up to the roofs if disturbed.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "It is waiting for something. Keep your distance and wait with it." },
+    colonyNote: "Its strategy is patience. We have been asked to take notes.",
+    danger: "none",
+  },
+  {
+    id: "mudskipper-shoal",
+    category: "fauna",
+    name: "Mudskipper Shoal",
+    latin: "Periophthalmus mercator",
+    observation: "Out on the counters",
+    appearance: "Small goggle-eyed fish that gather around the old shop counters.",
+    ancestry: "Descendant of a mudskipper. It breathes through its skin as well as its gills.",
+    behavior: "When the sun is low, the whole shoal climbs out of the water to sit on the counters and soak up the warmth.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "They stay in the water at midday. Try early or late." },
+    colonyNote: "Customers, finally. They do not buy anything.",
+    danger: "none",
+  },
+  {
+    id: "snapping-eel",
+    category: "fauna",
+    name: "Snapping Eel",
+    latin: "Anguilla rapax",
+    observation: "Watched from above",
+    appearance: "A long dark eel patrolling the canal across the arcade. A ragged fin shows when it comes close to the surface.",
+    ancestry: "Descendant of an eel. Much larger, with a wide jaw and a strong grip.",
+    behavior: "Guards the canal. Anything wading through its shallows gets seized and dragged back to the bank. It sometimes leaves to chase fish at the canal's far ends.",
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "Don't watch it from the water. Find a way above the canal." },
+    colonyNote: "It returns everything it catches. We are choosing to see that as manners.",
+    danger: "high",
+  },
+  {
+    id: "loc-flooded-arcade",
+    category: "locations",
+    name: "Flooded Arcade",
+    appearance: "A long covered shopping street under a broken glass roof, flooded knee-deep. Reeds and lilies grow between the shop fronts.",
+    colonyNote: "A street with a roof, so people could shop in the rain. Then the rain came in anyway.",
+  },
+  {
+    id: "loc-arcade-entrance",
+    category: "locations",
+    name: "Arcade Entrance",
+    appearance: "A dry stone landing at the foot of a stairwell from the temple hill, where the arcade begins.",
+    colonyNote: "The last dry step. After this, mind the water.",
+  },
+  {
+    id: "loc-clock-crossing",
+    category: "locations",
+    name: "Clock Crossing",
+    appearance: "Where a canal cuts across the arcade under its big clock. Deep water on both sides, shallows in the middle.",
+    colonyNote: "People used to meet under the clock. Now the eel does.",
+  },
+  {
+    id: "loc-arcade-roof",
+    category: "locations",
+    name: "Arcade Roof",
+    appearance: "The shop roofs and the steel frame of the glass roof: a dry route above the water, overgrown with grass.",
+    colonyNote: "The fast way through is up. Remember that.",
+  },
+  {
+    id: "art-shop-shutter",
+    category: "artifacts",
+    name: "Shop Shutter",
+    appearance: "A rolled-down steel shutter, locked from outside. Someone closed up properly and expected to come back.",
+    colonyNote: "Locked. The key is presumably somewhere else.",
+  },
+  {
+    id: "art-arcade-clock",
+    category: "artifacts",
+    name: "Arcade Clock",
+    appearance: "A large two-faced clock hanging over the crossing. Its glass is cracked and its hands stopped at twenty past four.",
+    colonyNote: "Correct twice a day for two thousand years. A decent record.",
+  },
+  {
+    id: "art-bicycle-rack",
+    category: "artifacts",
+    name: "Bicycle Rack",
+    appearance: "A row of rental bicycles at the arcade entrance, rusted solid into their rack. The baskets are still on.",
+    colonyNote: "Nobody returned them, because nobody took them.",
+  },
+  {
+    id: "art-toy-boat",
+    category: "artifacts",
+    name: "Toy Boat",
+    appearance: "A child's plastic boat bobbing at the edge of the canal. The colour has faded, the plastic has not.",
+    colonyNote: "Still floating. Made to last longer than anyone meant.",
+  },
+  {
+    id: "art-flood-line",
+    category: "artifacts",
+    name: "Flood Line",
+    appearance:
+      "Lines painted up the arcade's main pillar, one for each day the water rose, with dates and short notes beside them. The first lines are close together. The last one, circled, is almost at the roof.",
+    colonyNote: "They measured it every day. It did not happen all at once.",
+  },
+  {
+    id: "origin-tracks",
+    category: "origin",
+    name: "Predecessor's Tracks",
+    appearance: "Tread marks pressed into the mud bank, the same pattern as your own, leading down the stairs into the flooded station.",
+    colonyNote: "It went down there. You are not required to follow. Continue your survey.",
+  },
 ];
 
 export const ENTRY_BY_ID = new Map(ENTRIES.map((e) => [e.id, e]));
 
 export function stepsFor(def: EntryDef): number {
-  return def.category === "flora" || def.category === "fauna" ? 3 : 1;
+  return def.category === "flora" || def.category === "fungi" || def.category === "fauna" ? 3 : 1;
 }
 
 /** Stable "UNKNOWN ORGANISM ####" number derived from the entry id. */

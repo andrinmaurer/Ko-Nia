@@ -1,7 +1,6 @@
 import {
   AbstractMesh,
   Color3,
-  CreateScreenshotUsingRenderTargetAsync,
   Ray,
   Vector3,
   type Camera,
@@ -13,8 +12,8 @@ import { ENTRY_BY_ID, stepsFor, unknownNumber, type EntryDef } from "./entries";
 import { locationAt } from "./locations";
 import type { EntryProgress, Learned, ScanMode } from "./logbook";
 
-export const SCAN_MODES: ScanMode[] = ["visual", "bio"];
-const RANGE: Record<ScanMode, number> = { visual: 25, bio: 8 };
+export const SCAN_MODES: ScanMode[] = ["visual", "bio", "audio", "night", "thermal", "genetic", "radiation"];
+const RANGE: Record<ScanMode, number> = { visual: 25, bio: 8, audio: 25, night: 25, thermal: 35, genetic: 15, radiation: 25 };
 /** Small or moving things can be targeted by aiming within this angle of them. */
 const AIM_ASSIST = 0.07;
 const OUTLINE = new Color3(0.55, 0.95, 1);
@@ -52,15 +51,27 @@ export class Scanner {
     this.hud.setLens(this.lensOn, this.mode);
   }
 
+  get availableModes(): ScanMode[] {
+    return SCAN_MODES.filter((m) => m === "visual" || m === "bio" || m === "audio" || this.ctx.upgrades.has(m));
+  }
+
   cycleMode(step: number): void {
-    const i = SCAN_MODES.indexOf(this.mode);
-    this.mode = SCAN_MODES[(i + step + SCAN_MODES.length) % SCAN_MODES.length];
+    const modes = this.availableModes;
+    const i = modes.indexOf(this.mode);
+    this.mode = modes[(i + step + modes.length) % modes.length];
     this.hud.setLens(this.lensOn, this.mode);
   }
 
   update(dt: number): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
+    for (const s of this.scannables) {
+      const animal = ENTRY_BY_ID.get(s.entryId)?.category === "fauna";
+      const warm = this.lensOn && this.mode === "thermal" && animal && (s.isAvailable?.() ?? true) && Vector3.Distance(s.getPosition(), this.ctx.robot.position) <= 35 && this.visible(this.ctx.robot.eyePosition, s.getPosition(), s);
+      for (const m of s.meshes) { m.renderOverlay = !!warm; if (warm) { m.overlayColor = new Color3(1, 0.3, 0.05); m.overlayAlpha = 0.65; } }
+    }
     if (!this.lensOn) return;
+    if ((this.mode === "night" || this.mode === "thermal") && !this.ctx.status.trySpend(2 * dt)) { this.toggleLens(); this.hud.notice("Lens powered down: recharge required."); return; }
+    if (this.mode === "radiation") { this.setTarget(undefined); this.hud.setTarget("Ambient radiation", "Background levels · safe", true); return; }
     this.setTarget(this.findTarget());
     const t = this.target;
     if (!t) {
@@ -79,13 +90,22 @@ export class Scanner {
     if (!this.lensOn || this.cooldown > 0) return;
     this.cooldown = 0.6;
     const t = this.target;
+    if (this.ctx.sensorsJammed > 0) {
+      this.hud.notice("Sensors clogged with spores. Wait for them to clear.");
+      return;
+    }
+    if (this.mode === "radiation") {
+      if (this.ctx.status.trySpend(25)) this.hud.notice("Radiation survey: background levels. No active sources detected in these districts.");
+      else this.hud.notice("Not enough energy to survey");
+      return;
+    }
     if (!t) {
       this.hud.notice("Nothing to scan");
       return;
     }
     const def = ENTRY_BY_ID.get(t.scannable.entryId)!;
     const organism = stepsFor(def) === 3;
-    if (this.mode === "bio" && !organism) {
+    if ((this.mode === "bio" || this.mode === "genetic") && !organism) {
       this.hud.notice("No biological signature");
       return;
     }
@@ -93,7 +113,7 @@ export class Scanner {
       this.hud.notice(this.mode === "bio" ? "Too far for a Biological scan" : "Too far to scan");
       return;
     }
-    if (!this.ctx.status.trySpend(SCAN_COST)) {
+    if (!this.ctx.status.trySpend(this.mode === "genetic" ? 25 : SCAN_COST)) {
       this.hud.notice("Not enough energy to scan");
       return;
     }
@@ -107,9 +127,8 @@ export class Scanner {
     const newLocation = logbook.discoverLocation(locationId, when);
 
     this.hud.shutter();
-    if (learned.includes("created")) void this.capture(def.id);
-    if (newLocation) void this.capture(locationId);
     this.announce(def, learned);
+    if (this.mode === "genetic") this.hud.caption(`Lineage analysis: ${def.latin ?? def.name}`, 5);
     if (newLocation) this.hud.toast("Location recorded", ENTRY_BY_ID.get(locationId)!.name, { kind: "place" });
     this.onScanned();
   }
@@ -124,30 +143,8 @@ export class Scanner {
       if (l === "ancestry") this.hud.toast("Ancestry identified", name, { kind, field: def.latin });
       if (l === "behavior") this.hud.toast("Behavior observed", name, { kind, field: def.observation });
       if (l === "complete" && stepsFor(def) === 3) this.hud.toast("Entry complete", def.name, { kind, field: def.latin });
-      if (l === "nothing") this.hud.notice(nextHint(def, p) ?? "No new information");
-    }
-  }
-
-  private async capture(id: string): Promise<void> {
-    try {
-      const engine = this.ctx.scene.getEngine();
-      const image = await CreateScreenshotUsingRenderTargetAsync(
-        engine,
-        this.camera,
-        { width: 320, height: 180 },
-        "image/jpeg",
-        1,
-        false,
-        undefined,
-        false,
-        false,
-        false,
-        0.75,
-      );
-      this.ctx.logbook.setImage(id, image);
-    } catch (e) {
-      console.warn("logbook photo failed", e);
-      // A missing photo is not worth interrupting play for.
+      // The lead for the next step lives in the Logbook only, so the player has a reason to open it.
+      if (l === "nothing") this.hud.notice(nextHint(def, p) ? "Nothing new here · the Logbook has a lead (Tab)" : "No new information");
     }
   }
 
@@ -157,7 +154,7 @@ export class Scanner {
     const ray = this.camera.getForwardRay(60);
 
     // 1. Whatever the reticle points at directly.
-    const hit = scene.pickWithRay(ray, (m) => m.isVisible && (this.meshOwner.has(m) || m.checkCollisions));
+    const hit = scene.pickWithRay(ray, (m) => m.isVisible && m.isEnabled() && (this.meshOwner.has(m) || m.checkCollisions));
     if (hit?.hit && hit.pickedMesh && hit.pickedPoint) {
       const s = this.meshOwner.get(hit.pickedMesh);
       if (s && (s.isAvailable?.() ?? true)) return { scannable: s, distance: Vector3.Distance(eye, hit.pickedPoint) };
@@ -168,7 +165,8 @@ export class Scanner {
     let bestAngle = AIM_ASSIST;
     const blockingDistance = hit?.hit ? hit.distance : Infinity;
     for (const s of this.scannables) {
-      if (!(s.isAvailable?.() ?? true)) continue;
+      // Scannables in the block that isn't drawn right now are disabled.
+      if (!s.meshes[0]?.isEnabled() || !(s.isAvailable?.() ?? true)) continue;
       const p = s.getPosition();
       const to = p.subtract(ray.origin);
       const along = to.length();
@@ -187,7 +185,7 @@ export class Scanner {
     const length = dir.length();
     const hit = this.ctx.scene.pickWithRay(
       new Ray(from, dir.normalize(), length),
-      (m) => m.checkCollisions && m.isVisible && !s.meshes.includes(m),
+      (m) => m.checkCollisions && m.isVisible && m.isEnabled() && !s.meshes.includes(m),
     );
     return !hit?.hit || hit.distance > length - 0.5;
   }
@@ -216,7 +214,7 @@ export function displayName(def: EntryDef, p: EntryProgress, complete: boolean):
 /** Hint for the next missing step of an organism page. */
 export function nextHint(def: EntryDef, p: EntryProgress): string | undefined {
   if (!def.hints || !p.discovered) return undefined;
-  if (!p.bio) return def.hints.bio;
+  if (!p.bio) return `${def.hints.bio} Switch the lens to Biological with ← → and scan up close.`;
   if (!p.observed) return def.hints.observe;
   return undefined;
 }

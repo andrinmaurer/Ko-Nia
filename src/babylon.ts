@@ -24,7 +24,6 @@ export { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTextur
 export { Texture } from "@babylonjs/core/Materials/Textures/texture";
 export { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
 export { Ray } from "@babylonjs/core/Culling/ray";
-export { CreateScreenshotUsingRenderTargetAsync } from "@babylonjs/core/Misc/screenshotTools";
 
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCapsule } from "@babylonjs/core/Meshes/Builders/capsuleBuilder";

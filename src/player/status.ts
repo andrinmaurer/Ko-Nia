@@ -13,6 +13,16 @@ const SELF_REPAIR_SECONDS = 60;
 export class RobotStatus {
   energy = MAX_ENERGY;
   health = MAX_HEALTH;
+  capacity = MAX_ENERGY;
+  maxHealth = MAX_HEALTH;
+  solarMultiplier = 1;
+  configure(battery: boolean, durability: boolean, solar: boolean): void {
+    const capacity = battery ? 750 : MAX_ENERGY;
+    const health = durability ? 5 : MAX_HEALTH;
+    this.energy = Math.min(capacity, this.energy + capacity - this.capacity);
+    this.health = Math.min(health, this.health + health - this.maxHealth);
+    this.capacity = capacity; this.maxHealth = health; this.solarMultiplier = solar ? 1.75 : 1;
+  }
   private repairTimer = 0;
 
   get depleted(): boolean {
@@ -26,9 +36,9 @@ export class RobotStatus {
   update(dt: number, metresMoved: number, sprinting: boolean, daylight: number): void {
     this.energy -= metresMoved * (sprinting ? SPRINT_COST_PER_METRE : WALK_COST_PER_METRE);
     const solar = metresMoved > 0.001 ? SOLAR_MOVING : SOLAR_IDLE;
-    this.energy = clamp(this.energy + solar * daylight * dt, 0, MAX_ENERGY);
+    this.energy = clamp(this.energy + solar * this.solarMultiplier * daylight * dt, 0, this.capacity);
 
-    if (this.health < MAX_HEALTH && this.health > 0) {
+    if (this.health < this.maxHealth && this.health > 0) {
       this.repairTimer += dt;
       if (this.repairTimer >= SELF_REPAIR_SECONDS) {
         this.repairTimer = 0;
@@ -49,8 +59,8 @@ export class RobotStatus {
   }
 
   restore(): void {
-    this.energy = MAX_ENERGY;
-    this.health = MAX_HEALTH;
+    this.energy = this.capacity;
+    this.health = this.maxHealth;
     this.repairTimer = 0;
   }
 }

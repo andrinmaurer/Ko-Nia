@@ -1,7 +1,7 @@
 import type { ScanMode } from "../discovery/logbook";
 import { icon, type IconName } from "./icons";
 
-const MODE_LABELS: Record<ScanMode, string> = { visual: "Visual", bio: "Biological" };
+const MODE_LABELS: Record<ScanMode, string> = { visual: "Visual", bio: "Biological", audio: "Audio", night: "Night vision", thermal: "Thermal", genetic: "Genetic", radiation: "Radiation" };
 const CARDINALS: [string, number][] = [
   ["N", 0],
   ["NE", 45],
@@ -58,6 +58,7 @@ export class Hud {
         </div>
         <span class="kn-mode" data-el="mode"></span>
         <span class="hud-integrity" data-el="health"></span>
+        <span class="hud-logbook" data-el="logbook"></span>
       </div>
       <div class="kn-toast hud-toast" data-el="toast">
         <div class="kn-toast-mark" data-el="toastMark"></div>
@@ -67,6 +68,7 @@ export class Hud {
       <div class="hud-caption" data-el="caption"></div>
       <div class="hud-fps" data-el="fps"></div>
       <div class="hud-shutter" data-el="shutter"></div>
+      <div class="hud-spores" data-el="spores"></div>
       <div class="hud-fade" data-el="fade"></div>
     `;
     for (const node of this.root.querySelectorAll<HTMLElement>("[data-el]")) this.el[node.dataset.el!] = node;
@@ -146,12 +148,22 @@ export class Hud {
         .join("");
   }
 
+  /** Logbook reminder in the HUD bar while pages have news the player has not read. */
+  setUnread(count: number): void {
+    this.el.logbook.classList.toggle("show", count > 0);
+    this.el.logbook.innerHTML = count > 0 ? `${icon("book")}Logbook · ${count} new <span class="kn-key">Tab</span>` : "";
+  }
+
   hint(html: string | undefined): void {
     this.el.hint.innerHTML = html ?? "";
     this.el.hint.classList.toggle("show", html !== undefined);
   }
 
+  /** Skips the scan flash and HUD animations (settings). */
+  reducedMotion = false;
+
   shutter(): void {
+    if (this.reducedMotion) return;
     const s = this.el.shutter;
     s.classList.remove("flash");
     void s.offsetWidth; // restart the animation
@@ -186,6 +198,11 @@ export class Hud {
 
   setFps(text: string): void {
     this.el.fps.textContent = text;
+  }
+
+  /** Spore haze over the view, 0–1. */
+  setSpores(amount: number): void {
+    this.el.spores.style.opacity = String(amount);
   }
 
   setFade(opacity: number): void {

@@ -10,6 +10,7 @@ import {
 import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { card } from "../textures";
 import { mat } from "./materials";
+import { Form, organic } from "./visuals";
 
 /** The five MVP plant species. Positions match the Shrine Street greybox. */
 export function createPlants(ctx: GameContext, shadows: ShadowGenerator): LifeForm[] {
@@ -30,24 +31,32 @@ class LanternWisteria implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const strandMat = mat(scene, "wisteria", 0.65, 0.55, 0.85);
-    this.podMat = mat(scene, "wisteriaPod", 0.85, 0.82, 0.7);
-    const meshes: Mesh[] = [];
-    for (let z = -3; z <= 4.5; z += 0.9) {
+    const bark = organic(scene, "wisteria-bark", "#5f5742");
+    const flower = organic(scene, "wisteria-flower", "#b7a3c3");
+    const leaves = organic(scene, "wisteria-leaf", "#657545", "leaf");
+    this.podMat = organic(scene, "wisteriaPod", "#cec3a0");
+    const form = new Form(scene, "lantern-wisteria");
+    for (let z = -3; z <= 4.5; z += .9) {
       const h = 1.6 + Math.abs(Math.sin(z * 3.7)) * 1.2;
-      const strand = MeshBuilder.CreateBox(`wisteria${z}`, { width: 2.4, height: h, depth: 0.25 }, scene);
-      strand.position.set(-4.5, 5.6 - h / 2, z);
-      strand.material = strandMat;
-      shadows.addShadowCaster(strand);
-      meshes.push(strand);
-      for (const dx of [-0.7, 0.5]) {
-        const pod = MeshBuilder.CreateSphere(`wisteriaPod${z}${dx}`, { diameter: 0.28, segments: 6 }, scene);
-        pod.scaling.y = 1.4;
-        pod.position.set(-4.5 + dx, 5.6 - h - 0.1, z);
-        pod.material = this.podMat;
-        meshes.push(pod);
+      form.branch([[-5.6,5.55,z],[-4.7,5.5,z+.2],[-3.4,5.55,z]], .035,bark);
+      for (let j=0;j<4;j++) {
+        const x=-5.4+j*.58;
+        const length=h*(.55+j*.12);
+        form.branch([[x,5.5,z],[x+.1,5.5-length*.5,z+.04],[x,5.5-length,z]],.012,bark);
+        for(let k=0;k<7;k++) {
+          const y=5.35-k*length/7;
+          form.ellipsoid([x+Math.sin(k*2)*.055,y,z],[.13*(1-k*.06),.17,.09],flower,6);
+        }
+        for(let k=0;k<3;k++) {
+          const leaf=form.ellipsoid([x+.1,5.45-k*.25,z+.08],[.24,.025,.1],leaves,6);
+          leaf.rotation.z=.4-k*.4;
+        }
+        const pod=form.ellipsoid([x,5.4-length-.08,z],[.18,.27,.18],this.podMat,6);
+        pod.rotation.z=Math.sin(z+j)*.12;
       }
     }
+    const meshes = form.finish();
+    for(const mesh of meshes) shadows.addShadowCaster(mesh);
     this.scannables = [
       {
         entryId: "lantern-wisteria",
@@ -60,7 +69,7 @@ class LanternWisteria implements LifeForm {
 
   update(): void {
     const glow = 1 - this.ctx.time.daylight;
-    this.podMat.emissiveColor.set(0.25 * glow, 0.95 * glow, 0.75 * glow);
+    this.podMat.emissiveColor.set(0.16 * glow, 0.65 * glow, 0.5 * glow);
   }
 }
 
@@ -70,7 +79,9 @@ class RebarIvy implements LifeForm {
 
   constructor(ctx: GameContext) {
     const scene = ctx.scene;
-    const ivyMat = mat(scene, "ivy", 0.45, 0.2, 0.12);
+    const ivyMat = card(scene,"ivy").clone("rebarIvyLeaves");
+    ivyMat.diffuseColor = new Color3(.85,.38,.21);
+    ivyMat.specularColor = Color3.Black();
     ivyMat.backFaceCulling = false;
     const patches: [number, number, number, number, number][] = [
       // x0, x1, wall z, y0, y1
@@ -139,15 +150,15 @@ class ShutterFerns implements LifeForm {
       m.alphaCutOff = fronds.alphaCutOff;
       return m;
     };
-    this.openMat = tinted("fernOpen", new Color3(1.35, 1.45, 0.55));
-    this.openMat.emissiveColor = new Color3(0.14, 0.2, 0.02);
+    this.openMat = tinted("fernOpen", new Color3(1.08, 1.12, .66));
+
     this.closedMat = tinted("fernClosed", new Color3(0.5, 0.75, 0.45));
     for (let x = -50; x < 40; x += 7 + (Math.abs(x) % 5)) {
       for (const z of [-4.6, 4.6]) {
         const cards: Mesh[] = [];
         for (let i = 0; i < 4; i++) {
-          const p = MeshBuilder.CreatePlane("fernCard", { width: 1.6, height: 1.1 }, scene);
-          p.position.y = 0.2;
+          const p = MeshBuilder.CreatePlane("fernCard", { width: 1, height: .65 }, scene);
+          p.position.y = .14;
           p.rotation.set(0.18, (i / 4) * Math.PI + x, 0);
           p.bakeCurrentTransformIntoVertices();
           cards.push(p);
@@ -200,29 +211,34 @@ class SunLotus implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const padMat = mat(scene, "lotusPad", 0.22, 0.5, 0.18);
-    const bloomMat = mat(scene, "lotusBloom", 0.95, 0.75, 0.82);
-    const stemMat = mat(scene, "lotusStem", 0.3, 0.45, 0.2);
+    const padMat = organic(scene, "lotus-pad", "#617c44", "leaf");
+    const bloomMat = organic(scene, "lotus-petal", "#e9bdc7");
+    const centerMat = organic(scene, "lotus-pollen", "#b79c43");
+    const stemMat = organic(scene, "lotus-stem", "#5c7046");
     this.pads = new TransformNode("lotusPads", scene);
     this.pads.position.copyFrom(SunLotus.POS);
-    const meshes: Mesh[] = [];
-    for (const [dx, dz, r] of [[0.6, 0.3, 0.5], [-0.7, -0.5, 0.45], [0.1, -1, 0.4], [-0.3, 0.8, 0.35]]) {
-      const pad = MeshBuilder.CreateDisc(`lotusPad${dx}`, { radius: r, tessellation: 12, arc: 0.9 }, scene);
-      pad.rotation.x = Math.PI / 2;
-      pad.position.set(dx, 0.06, dz);
-      pad.parent = this.pads;
-      pad.material = padMat;
-      meshes.push(pad);
+    const form = new Form(scene,"sun-lotus-base");
+    for (const [dx,dz,r] of [[.45,.25,.36],[-.45,-.3,.35],[.1,-.6,.32],[-.2,.5,.28]]) {
+      const pad=MeshBuilder.CreateDisc("lotusPad",{radius:r,tessellation:24,arc:.94},scene);
+      pad.rotation.x=Math.PI/2;pad.position.set(dx,.06,dz);form.add(pad,padMat);
+      for(let i=0;i<8;i++) {
+        const a=i*Math.PI/4;
+        form.branch([[dx,.065,dz],[dx+Math.cos(a)*r*.9,.065,dz+Math.sin(a)*r*.9]],.003,stemMat);
+      }
     }
-    const stem = MeshBuilder.CreateCylinder("lotusStem", { diameter: 0.06, height: 0.9 }, scene);
-    stem.position.set(0, 0.45, 0);
-    stem.parent = this.pads;
-    stem.material = stemMat;
-    this.bloom = MeshBuilder.CreateSphere("lotusBloom", { diameter: 0.45, segments: 8 }, scene);
-    this.bloom.position.set(0.1, 0.95, 0);
-    this.bloom.parent = this.pads;
-    this.bloom.material = bloomMat;
-    meshes.push(stem, this.bloom);
+    form.branch([[0,.03,0],[.04,.4,0],[.1,.78,0]],.022,stemMat);
+    const meshes=form.finish(this.pads);
+    const bloom=new Form(scene,"lotusBloom");
+    // Layered pointed petals, with a visible pollen cup instead of a pink ball.
+    for(let ring=0;ring<2;ring++) for(let i=0;i<8;i++) {
+      const a=(i/8)*Math.PI*2+ring*.35;
+      const petal=bloom.ellipsoid([Math.cos(a)*(.1+ring*.035),.04-ring*.03,Math.sin(a)*(.1+ring*.035)],[.1,.055,.28],bloomMat,6);
+      petal.rotation.y=Math.PI/2-a;petal.rotation.x=.25+ring*.2;
+    }
+    bloom.ellipsoid([0,.08,0],[.13,.07,.13],centerMat);
+    this.bloom=Mesh.MergeMeshes(bloom.finish(),true,true,undefined,false,true)!;
+    this.bloom.name="lotusBloom";this.bloom.position.set(.1,.8,0);this.bloom.parent=this.pads;
+    meshes.push(this.bloom);
 
     this.scannables = [
       {
@@ -254,7 +270,7 @@ class ChoirMoss implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const mossMat = mat(scene, "choirMoss", 0.3, 0.5, 0.2);
+    const mossMat = organic(scene, "choir-moss", "#526a37");
     const stalkMat = mat(scene, "choirStalk", 0.55, 0.65, 0.35);
     for (const z of [-3.5, 3.5]) {
       const cap = MeshBuilder.CreateSphere(`choirMoss${z}`, { diameter: 0.95, segments: 8 }, scene);
@@ -264,9 +280,16 @@ class ChoirMoss implements LifeForm {
       const meshes: Mesh[] = [cap];
       for (let i = 0; i < 7; i++) {
         const a = (i / 7) * Math.PI * 2;
-        const stalk = MeshBuilder.CreateCylinder(`choirStalk${z}${i}`, { diameter: 0.035, height: 0.18 + (i % 3) * 0.08 }, scene);
-        stalk.position.set(47.5 + Math.cos(a) * 0.25, 2.25, z + Math.sin(a) * 0.25);
+        const stalk = MeshBuilder.CreateCylinder(`choirStalk${z}${i}`, { diameter: .025, height: .045 + (i % 3) * .015 }, scene);
+        stalk.position.set(47.5 + Math.cos(a) * .25, 2.22, z + Math.sin(a) * .25);
         stalk.material = stalkMat;
+        // A dark opening and a rim make the wind instruments read as hollow stalks.
+        const rim=MeshBuilder.CreateTorus(`choirRim${z}${i}`,{diameter:.027,thickness:.008,tessellation:8},scene);
+        rim.material=stalkMat;rim.parent=stalk;rim.position.y=(.045+(i%3)*.015)/2;
+        const opening=MeshBuilder.CreateDisc(`choirOpening${z}${i}`,{radius:.009,tessellation:8},scene);
+        opening.material=mat(scene,"choirHollow",.055,.07,.025);
+        opening.parent=stalk;opening.rotation.x=-Math.PI/2;opening.position.y=rim.position.y+.001;
+        meshes.push(rim,opening);
         this.stalks.push(stalk);
         meshes.push(stalk);
       }

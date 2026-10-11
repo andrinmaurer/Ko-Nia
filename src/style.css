@@ -356,6 +356,16 @@ button {
   }
 }
 
+/* Spore cloud clogging the sensors: an ochre haze that clears over ~20 s. */
+.hud-spores {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(196, 150, 70, 0.25) 0%, rgba(150, 110, 45, 0.7) 60%, rgba(110, 78, 30, 0.92) 100%);
+}
+
 .hud-fade {
   position: absolute;
   inset: 0;
@@ -586,7 +596,7 @@ button {
 
 .lb-image {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 3 / 2;
   background: var(--void);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -620,11 +630,6 @@ button {
 
 .lb-right .kn-checklist {
   width: auto;
-}
-
-.lb-hint {
-  margin: 0;
-  color: var(--ink-muted);
 }
 
 .lb-colony {
@@ -696,4 +701,190 @@ button {
   border: 1px solid var(--line-strong);
   font: 12px/1.5 var(--font-mono);
   resize: none;
+}
+
+.upgrade-panel { position: fixed; inset: 5vh 5vw; z-index: 50; overflow: auto; padding: 28px; color: #d7ecee; background: rgba(8, 21, 25, .97); border: 1px solid #507177; border-radius: 8px; font: 14px/1.6 monospace; }
+.upgrade-panel header { display: flex; justify-content: space-between; gap: 20px; align-items: center; }
+.upgrade-panel h1 { font-size: 24px; } .upgrade-panel h2 { font-size: 17px; }
+.upgrade-panel button { color: #9ce9ed; background: #143337; border: 1px solid #58848a; padding: 10px 16px; cursor: pointer; }
+.upgrade-panel button:disabled { opacity: .45; cursor: default; }
+.upgrade-panel button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.upgrade-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; }
+.upgrade-grid article { padding: 18px; border: 1px solid #36575d; background: #10282c; }
+.upgrade-requirement { color: #a7c9cd; min-height: 44px; }
+.upgrade-panel details { border-top: 1px solid #36575d; padding: 12px 0; }
+.exploration-map { width: 100%; min-height: 280px; background: #081216; border: 1px solid #36575d; }
+@media (max-width: 600px) { .upgrade-panel { inset: 2vh 2vw; padding: 16px; } }
+.upgrade-panel.hidden { display: none; }
+
+/* --- Guidance: unread Logbook news, field leads, next-step lead ------------- */
+
+.hud-logbook {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.hud-logbook.show {
+  display: inline-flex;
+  animation: hud-logbook-in 0.6s ease-out;
+}
+
+@keyframes hud-logbook-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.kn-entry.is-new .kn-entry-name::after,
+.lb-sub.is-new > span:first-of-type::after,
+.kn-tab.is-new::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.lb-leads {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.lb-leads .kn-label {
+  margin: 0 0 var(--space-2);
+}
+
+.lb-leads ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lb-leads li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lb-leads .data-sm {
+  color: var(--ink-faint);
+}
+
+.lb-hint {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--signal);
+  background: var(--surface);
+}
+
+.lb-hint .kn-label,
+.lb-hint p {
+  margin: 0;
+}
+
+.lb-intro {
+  margin: var(--space-3) 0 0;
+  color: var(--ink-muted);
+}
+
+/* --- Settings ------------------------------------------------------------------ */
+
+:root {
+  --ui-scale: 1;
+}
+
+#hud,
+#logbook,
+#start,
+.upgrade-panel {
+  zoom: var(--ui-scale);
+}
+
+#start.show-settings .tagline,
+#start.show-settings .start-keys {
+  display: none;
+}
+
+#start.show-settings .kn-menu {
+  width: min(520px, 100%);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.settings .kn-label {
+  margin: var(--space-3) 0 0;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 32px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.settings-row input[type="range"] {
+  width: 180px;
+  accent-color: var(--signal);
+}
+
+.settings-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--signal);
+}
+
+.settings-row output {
+  min-width: 48px;
+  color: var(--ink-muted);
+}
+
+.settings-row .kn-select {
+  grid-column: 2 / span 2;
+}
+
+.settings-note {
+  margin: var(--space-2) 0 0;
+  color: var(--ink-faint);
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+body.hide-fps .hud-fps {
+  display: none;
+}
+
+body.reduce-motion * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Large text can make the title / settings screen taller than the window. */
+#start {
+  justify-content: safe center;
+  overflow-y: auto;
 }

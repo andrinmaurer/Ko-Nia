@@ -2,7 +2,7 @@
 
 A browser exploration game: a newly booted robot explores the overgrown ruins of an abandoned East Asian megacity, scanning plants and animals into its Logbook.
 
-The design documents live in [`docs/`](docs/). The current goal is the MVP described in [`docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md`](docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md): one authored city block ("Shrine Street") where you can move around, discover something, scan it and see it in the Logbook.
+The design documents live in [`docs/`](docs/). The game now includes Shrine Street, Temple Hill, and a saved relay-based progression system. The original MVP is described in [`docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md`](docs/abandoned_city_design_pack_v2/17_MVP_SPECIFICATION.md): one authored city block ("Shrine Street") where you can move around, discover something, scan it and see it in the Logbook.
 
 ## Play it
 
@@ -27,13 +27,15 @@ Then open the address it prints (usually http://localhost:5173) and click to sta
 | --- | --- |
 | Move | W A S D |
 | Look | Mouse |
-| Sprint | Shift |
-| Jump / climb onto a ledge | Space |
+| Sprint (installed at a relay) | Shift |
+| Jump / climb (unlocked) / hover (unlocked) | Space; hold in air to hover |
+| Glide / grapple (unlocked) | Hold F while falling / G aimed at an exposed ledge |
+| Upgrades / map (unlocked) | U / M |
 | Scanner lens on / off | Right click |
 | Scan | Left click (lens on) |
-| Change scan mode (Visual / Biological) | ← → |
+| Change scan mode (available sensors) | ← → |
 | Logbook | Tab (Q / E switch sections) |
-| Use the Relay Station | E (save and recharge), R (rest until night or morning) |
+| Use the Relay Station | E (upload, save and recharge), R (rest until night or morning) |
 | Switch first / third person | V |
 | Pause | Esc |
 
@@ -45,11 +47,18 @@ Every species, artifact and location from the MVP spec is in the block and can b
 
 Progress is saved in the browser (localStorage) after every discovery and at the Relay Station. "New game" on the title screen clears it.
 
+## Blocks after the MVP
+
+The city continues past Shrine Street, one block at a time. Only one block is drawn at once; they swap inside covered passages where neither end is in view (`src/world/regions.ts`).
+
+- **Temple Hill** ([proposal](docs/blocks/02_TEMPLE_HILL_PROPOSAL.md)): up the stair lane behind the Neighborhood Shrine.
+- **Flooded Arcade** ([proposal](docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md)): through the gap in the temple's east wall and down the stairwell of the old west building. The street is flooded knee-deep: wading is slow and costs energy, deep water sends the robot back, and the shop roofs and roof girders are the dry route.
+
 ## Performance
 
 The target is 30 FPS on a MacBook Air M1 (Chrome and Safari). `src/game/quality.ts` watches the frame rate and steps down render resolution, shadow map size and glow when it drops under 30, then steps back up when there is headroom. The current quality level shows next to the FPS counter in the top-left corner (Q5 is the highest).
 
-All placeholder textures are painted onto canvases at load time (`src/world/textures.ts`), so the build ships no image files besides the logo. Set dressing is merged into one mesh per material, and grass is drawn with thin instances.
+All placeholder textures are painted onto canvases at load time (`src/world/textures.ts`), while Logbook photographs ship as optimized WebP assets. Set dressing is merged into one mesh per material, and grass is drawn with thin instances.
 
 ## Tech
 
@@ -71,3 +80,13 @@ UI styling comes from the Ko-Nia design system (Terminal theme), copied into `sr
 ## Discoverable asset references
 
 The [discoverable asset blockout and visual inventory](docs/art/discoverables/discoverable-assets.md) covers all 18 MVP entries, with individual species/object turnarounds, location sheets, generation prompts and modeling notes. These are first-pass concept references.
+
+## Logbook photographs
+
+The [52 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street, Temple Hill and Flooded Arcade. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.
+
+## Upgrade progression
+
+See [upgrade rules and controls](docs/UPGRADES.md). Upload research at a relay, then press U to install eligible upgrades. Existing saves keep sprint and climbing; fresh units begin with walking and jumping. Mission transmissions arrive every 5% uploaded research and can be replayed in the upgrade panel.
+
+The browser regression suite in `tests/upgrades.cjs` runs against the local development server with Playwright installed: `node tests/upgrades.cjs`.

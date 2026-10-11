@@ -1,14 +1,17 @@
+import { logbookPhoto } from "../discovery/photos";
 import { coordinates, formatHour, inWorldDate, type DayCycle } from "../game/dayCycle";
 import { ENTRIES, ENTRY_BY_ID, stepsFor, unknownNumber, type Category, type EntryDef } from "../discovery/entries";
 import type { Logbook } from "../discovery/logbook";
 import { displayName, nextHint } from "../discovery/scanner";
+import { activeLeads, REGION_LABELS } from "../discovery/leads";
+import type { RegionId } from "../world/regions";
 import { icon, type IconName } from "./icons";
 
 type Tab = "biology" | "locations" | "artifacts" | "history" | "anomalies" | "origin";
 type Sort = "discovery" | "name" | "completion";
 
 const TABS: { id: Tab; label: string; icon: IconName; categories: Category[] }[] = [
-  { id: "biology", label: "Biology", icon: "leaf", categories: ["flora", "fauna"] },
+  { id: "biology", label: "Biology", icon: "leaf", categories: ["flora", "fungi", "fauna"] },
   { id: "locations", label: "Locations", icon: "pin", categories: ["locations"] },
   { id: "artifacts", label: "Artifacts", icon: "cube", categories: ["artifacts"] },
   { id: "history", label: "History", icon: "book", categories: [] },
@@ -18,13 +21,15 @@ const TABS: { id: Tab; label: string; icon: IconName; categories: Category[] }[]
 
 const SUBCATEGORY: Partial<Record<Category, { label: string; icon: IconName }>> = {
   flora: { label: "Flora", icon: "sprout" },
+  fungi: { label: "Fungi", icon: "mushroom" },
   fauna: { label: "Fauna", icon: "paw" },
 };
 
 const BREADCRUMB: Record<Category, string> = {
   flora: "FLORA / SPECIES",
+  fungi: "FUNGI / SPECIES",
   fauna: "FAUNA / SPECIES",
-  locations: "LOCATIONS / SHRINE STREET",
+  locations: "LOCATIONS / OLD TOWN",
   artifacts: "ARTIFACTS / OBJECT",
   origin: "ORIGIN / RECORD",
 };
@@ -43,7 +48,12 @@ export class LogbookView {
   private sort: Sort = "discovery";
   isOpen = false;
 
-  constructor(private readonly logbook: Logbook, private readonly time: DayCycle, onClose: () => void) {
+  constructor(
+    private readonly logbook: Logbook,
+    private readonly time: DayCycle,
+    private readonly region: () => RegionId,
+    onClose: () => void,
+  ) {
     this.root = document.getElementById("logbook")!;
     this.root.addEventListener("click", (e) => {
       const t = e.target as HTMLElement;
@@ -76,6 +86,14 @@ export class LogbookView {
 
   open(): void {
     this.isOpen = true;
+    // Open on the page that just learned something, so its next lead is right there.
+    const fresh = this.logbook.lastUpdated;
+    if (fresh) {
+      const cat = ENTRY_BY_ID.get(fresh)!.category;
+      this.tab = TABS.find((t) => t.categories.includes(cat))!.id;
+      this.sub = cat;
+      this.selected = fresh;
+    }
     this.selected ??= this.firstDiscovered();
     this.root.classList.add("open");
     this.render();
@@ -105,6 +123,15 @@ export class LogbookView {
     this.render();
   }
 
+  /** Field leads for things not yet scanned, at the top of the entry list. */
+  private renderLeads(): string {
+    const leads = activeLeads(this.region(), (id) => this.logbook.get(id).discovered);
+    if (leads.length === 0) return "";
+    return `<div class="lb-leads"><p class="kn-label">Field leads</p><ul>${leads
+      .map((l) => `<li><span class="body-sm">${l.text}</span><span class="data-sm">${REGION_LABELS[l.region]}</span></li>`)
+      .join("")}</ul></div>`;
+  }
+
   private firstDiscovered(): string | undefined {
     return ENTRIES.find((e) => e.category === this.sub && this.logbook.get(e.id).discovered)?.id;
   }
@@ -116,7 +143,7 @@ export class LogbookView {
   private render(): void {
     const total = Math.round(this.logbook.completion() * 100);
     const tabs = TABS.map(
-      (t) => `<button class="kn-tab" data-tab="${t.id}" aria-selected="${t.id === this.tab}" ${t.categories.length === 0 ? 'aria-disabled="true"' : ""}>
+      (t) => `<button class="kn-tab${t.categories.some((c) => ENTRIES.some((e) => e.category === c && this.logbook.unread.has(e.id))) ? " is-new" : ""}" data-tab="${t.id}" aria-selected="${t.id === this.tab}" ${t.categories.length === 0 ? 'aria-disabled="true"' : ""}>
         ${icon(t.icon)}${t.label}</button>`,
     ).join("");
     const cats = TABS.find((t) => t.id === this.tab)!.categories;
@@ -127,11 +154,13 @@ export class LogbookView {
               const all = ENTRIES.filter((e) => e.category === c);
               const found = all.filter((e) => this.logbook.get(e.id).discovered).length;
               const s = SUBCATEGORY[c]!;
-              return `<button class="lb-sub" data-sub="${c}" aria-selected="${c === this.sub}">${icon(s.icon)}<span>${s.label}</span><span class="lb-count">${found} / ${all.length}</span></button>`;
+              const fresh = all.some((e) => this.logbook.unread.has(e.id)) ? " is-new" : "";
+              return `<button class="lb-sub${fresh}" data-sub="${c}" aria-selected="${c === this.sub}">${icon(s.icon)}<span>${s.label}</span><span class="lb-count">${found} / ${all.length}</span></button>`;
             })
             .join("")}</div>`
         : "";
 
+    if (this.selected) this.logbook.markRead(this.selected);
     this.root.innerHTML = `
       <div class="lb-panel">
         <header class="lb-header">
@@ -146,6 +175,7 @@ export class LogbookView {
         </header>
         <div class="lb-body">
           <aside class="lb-left">
+            ${this.renderLeads()}
             ${subs}
             <div class="kn-search">
               <label class="kn-input">${icon("search")}<input name="search" placeholder="Search…" value="${this.query}" autocomplete="off"></label>
@@ -193,9 +223,11 @@ export class LogbookView {
           if (!p.discovered) {
             return `<div class="kn-entry is-undiscovered"><div class="kn-thumb"></div><div><div class="kn-entry-name">Not yet scanned</div></div><span></span></div>`;
           }
+          const photo = logbookPhoto(e.id, p.discovered);
           const latin = e.latin ? `<div class="kn-entry-latin">${p.bio ? e.latin : "Unknown"}</div>` : "";
-          return `<div class="kn-entry" data-entry="${e.id}" aria-selected="${e.id === this.selected}">
-            <div class="kn-thumb">${p.image ? `<img src="${p.image}" alt="">` : ""}</div>
+          const fresh = this.logbook.unread.has(e.id) ? " is-new" : "";
+          return `<div class="kn-entry${fresh}" data-entry="${e.id}" aria-selected="${e.id === this.selected}">
+            <div class="kn-thumb">${photo ? `<img src="${photo}" alt="" loading="lazy">` : ""}</div>
             <div><div class="kn-entry-name">${name(e)}</div>${latin}</div>
             <span class="kn-entry-pct">${this.pct(e.id)}%</span></div>`;
         })
@@ -208,6 +240,7 @@ export class LogbookView {
     }
     const def = ENTRY_BY_ID.get(this.selected)!;
     const p = this.logbook.get(def.id);
+    const photo = logbookPhoto(def.id, p.discovered);
     const steps = stepsFor(def);
     const done = this.logbook.stepsDone(def.id);
     const complete = done === steps;
@@ -232,6 +265,11 @@ export class LogbookView {
          </ul>`
       : "";
     const hint = nextHint(def, p);
+    // Until the player has completed a behavior observation anywhere, explain how a page fills up.
+    const intro =
+      organism && !complete && !ENTRIES.some((e) => this.logbook.get(e.id).observed)
+        ? `<p class="body-sm lb-intro">Every organism takes three observations: a first scan, a Biological scan up close, and its behavior. The lead below says what to look for next.</p>`
+        : "";
 
     return `
       <section class="lb-main">
@@ -254,7 +292,7 @@ export class LogbookView {
               <dt>Time</dt><dd class="is-data">${p.hour !== undefined ? formatHour(p.hour) : unknown}</dd>
             </dl>
           </div>
-          <div class="lb-image">${p.image ? `<img src="${p.image}" alt="">` : `<span class="caption">No image</span>`}</div>
+          <div class="lb-image">${photo ? `<img src="${photo}" alt="${name}">` : `<span class="caption">No image</span>`}</div>
         </div>
       </section>
       <section class="lb-right">
@@ -262,7 +300,8 @@ export class LogbookView {
         <p class="body">${def.appearance}</p>
         ${organism ? `<p class="kn-label">Behavior</p><p class="body">${p.observed ? def.behavior : "Not yet observed."}</p>` : ""}
         ${checklist}
-        ${hint ? `<p class="body-sm lb-hint">${hint}</p>` : ""}
+        ${intro}
+        ${hint ? `<div class="lb-hint"><p class="kn-label">Next lead</p><p class="body-sm">${hint}</p></div>` : ""}
         ${complete ? `<div class="lb-colony"><p class="kn-label">Colony note</p><p class="body">${def.colonyNote}</p></div>` : ""}
       </section>`;
   }
