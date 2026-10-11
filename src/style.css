@@ -798,3 +798,93 @@ button {
   margin: var(--space-3) 0 0;
   color: var(--ink-muted);
 }
+
+/* --- Settings ------------------------------------------------------------------ */
+
+:root {
+  --ui-scale: 1;
+}
+
+#hud,
+#logbook,
+#start,
+.upgrade-panel {
+  zoom: var(--ui-scale);
+}
+
+#start.show-settings .tagline,
+#start.show-settings .start-keys {
+  display: none;
+}
+
+#start.show-settings .kn-menu {
+  width: min(520px, 100%);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.settings .kn-label {
+  margin: var(--space-3) 0 0;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 32px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.settings-row input[type="range"] {
+  width: 180px;
+  accent-color: var(--signal);
+}
+
+.settings-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--signal);
+}
+
+.settings-row output {
+  min-width: 48px;
+  color: var(--ink-muted);
+}
+
+.settings-row .kn-select {
+  grid-column: 2 / span 2;
+}
+
+.settings-note {
+  margin: var(--space-2) 0 0;
+  color: var(--ink-faint);
+}
+
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+body.hide-fps .hud-fps {
+  display: none;
+}
+
+body.reduce-motion * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Large text can make the title / settings screen taller than the window. */
+#start {
+  justify-content: safe center;
+  overflow-y: auto;
+}

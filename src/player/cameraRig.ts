@@ -19,6 +19,9 @@ export class CameraRig {
   mode: CameraMode = "third";
   yaw = 0;
   pitch = 0.15;
+  /** Multiplies mouse look speed (settings). */
+  lookSpeed = 1;
+  invertLook = false;
   private currentDistance = THIRD_PERSON_DISTANCE;
 
   constructor(private readonly scene: Scene, private readonly robot: Robot) {
@@ -35,8 +38,9 @@ export class CameraRig {
 
   update(dt: number, input: Input): void {
     const look = input.consumeLook(dt);
-    this.yaw += look.x * MOUSE_SENSITIVITY;
-    this.pitch = clamp(this.pitch + look.y * MOUSE_SENSITIVITY, MIN_PITCH, MAX_PITCH);
+    const k = MOUSE_SENSITIVITY * this.lookSpeed;
+    this.yaw += look.x * k;
+    this.pitch = clamp(this.pitch + look.y * k * (this.invertLook ? -1 : 1), MIN_PITCH, MAX_PITCH);
 
     const dir = new Vector3(
       Math.sin(this.yaw) * Math.cos(this.pitch),
