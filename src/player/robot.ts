@@ -30,6 +30,8 @@ export interface MoveOptions {
   canHover?: boolean;
   canGlide?: boolean;
   spendEnergy?: (amount: number) => boolean;
+  /** Multiplies walking and sprinting speed (wading through water). Default 1. */
+  speedScale?: number;
 }
 
 interface Mantle {
@@ -161,7 +163,7 @@ export class Robot {
     const moving = move.lengthSquared() > 0;
     const wantsSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
     this.sprinting = moving && wantsSprint && opts.canSprint && !opts.depleted;
-    let speed = opts.depleted ? DEPLETED_SPEED : this.sprinting ? SPRINT_SPEED : WALK_SPEED;
+    let speed = (opts.depleted ? DEPLETED_SPEED : this.sprinting ? SPRINT_SPEED : WALK_SPEED) * (opts.speedScale ?? 1);
     if (moving) move.normalize();
     const facing = moving ? move.clone() : new Vector3(Math.sin(this.visual.rotation.y), 0, Math.cos(this.visual.rotation.y));
 

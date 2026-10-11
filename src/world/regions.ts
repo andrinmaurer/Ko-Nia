@@ -8,16 +8,18 @@ import { type AbstractMesh, type Scene, type ShadowGenerator, TransformNode } fr
  * out of the shadow map too, because the light's shadow bounds would otherwise
  * still stretch over the hidden block.
  */
-export type RegionId = "street" | "temple";
+export type RegionId = "street" | "temple" | "arcade";
 
 interface Region {
   root: TransformNode;
   casters: AbstractMesh[];
+  /** Drawn while any of these is the active block (passages belong to both ends). */
+  ids: RegionId[];
 }
 
 export class Regions {
   active: RegionId;
-  private readonly regions = new Map<RegionId, Region>();
+  private readonly regions = new Map<string, Region>();
   private readonly listeners: ((id: RegionId) => void)[] = [];
 
   constructor(
@@ -32,15 +34,20 @@ export class Regions {
     this.listeners.push(fn);
   }
 
-  /** Runs `build` and files every mesh and node it creates under region `id`. */
-  capture<T>(id: RegionId, build: () => T): T {
+  /**
+   * Runs `build` and files every mesh and node it creates under region `id`, or
+   * under a group drawn with any of several blocks (a passage between two).
+   */
+  capture<T>(id: RegionId | RegionId[], build: () => T): T {
+    const ids = Array.isArray(id) ? id : [id];
+    const key = ids.join("+");
     const meshes = new Set(this.scene.meshes);
     const nodes = new Set(this.scene.transformNodes);
     const result = build();
-    let region = this.regions.get(id);
+    let region = this.regions.get(key);
     if (!region) {
-      region = { root: new TransformNode(`region:${id}`, this.scene), casters: [] };
-      this.regions.set(id, region);
+      region = { root: new TransformNode(`region:${key}`, this.scene), casters: [], ids };
+      this.regions.set(key, region);
     }
     const added = [
       ...this.scene.meshes.filter((m) => !meshes.has(m)),
@@ -58,7 +65,7 @@ export class Regions {
     };
     // Union with earlier captures: a hidden region's casters are no longer in the list.
     region.casters = [...new Set([...region.casters, ...renderList.filter(inRegion)])];
-    this.apply(id);
+    this.apply(region);
     return result;
   }
 
@@ -66,13 +73,12 @@ export class Regions {
   activate(id: RegionId): void {
     if (id === this.active) return;
     this.active = id;
-    for (const r of this.regions.keys()) this.apply(r);
+    for (const r of this.regions.values()) this.apply(r);
     for (const fn of this.listeners) fn(id);
   }
 
-  private apply(id: RegionId): void {
-    const region = this.regions.get(id)!;
-    const on = id === this.active;
+  private apply(region: Region): void {
+    const on = region.ids.includes(this.active);
     region.root.setEnabled(on);
     const list = this.shadows.getShadowMap()?.renderList;
     if (!list) return;

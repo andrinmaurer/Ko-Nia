@@ -47,6 +47,13 @@ Every species, artifact and location from the MVP spec is in the block and can b
 
 Progress is saved in the browser (localStorage) after every discovery and at the Relay Station. "New game" on the title screen clears it.
 
+## Blocks after the MVP
+
+The city continues past Shrine Street, one block at a time. Only one block is drawn at once; they swap inside covered passages where neither end is in view (`src/world/regions.ts`).
+
+- **Temple Hill** ([proposal](docs/blocks/02_TEMPLE_HILL_PROPOSAL.md)): up the stair lane behind the Neighborhood Shrine.
+- **Flooded Arcade** ([proposal](docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md)): through the gap in the temple's east wall and down the stairwell of the old west building. The street is flooded knee-deep: wading is slow and costs energy, deep water sends the robot back, and the shop roofs and roof girders are the dry route.
+
 ## Performance
 
 The target is 30 FPS on a MacBook Air M1 (Chrome and Safari). `src/game/quality.ts` watches the frame rate and steps down render resolution, shadow map size and glow when it drops under 30, then steps back up when there is headroom. The current quality level shows next to the FPS counter in the top-left corner (Q5 is the highest).

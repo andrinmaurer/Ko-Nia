@@ -35,6 +35,9 @@ export const TEMPLE = {
   gallery: { x0: 197.4, x1: 199.6, z0: -1, z1: 21.5, y: 14.5 },
 };
 
+/** Gap in the east compound wall where the path to the Flooded Arcade leaves. */
+export const BREACH = { z0: 9.5, z1: 14 };
+
 /** Pagoda tiers: half-size of each tier body; eaves stick out 1.6 m further. */
 export const PAGODA_TIERS = [4, 3.5, 3, 2.5, 2];
 export const PAGODA_TIER_HEIGHT = 3.2;
@@ -192,7 +195,9 @@ function buildWalls(kit: Kit, m: Mats): void {
   };
   wall("wallS", x0, x1, z0, z0 + 1.5);
   wall("wallN", x0, x1, z1 - 1.5, z1);
-  wall("wallE", x1 - 1.5, x1, z0 + 1.5, z1 - 1.5);
+  // The east wall has fallen in behind the hall: the way down to the Flooded Arcade.
+  wall("wallES", x1 - 1.5, x1, z0 + 1.5, BREACH.z0);
+  wall("wallEN", x1 - 1.5, x1, BREACH.z1, z1 - 1.5);
   // The west wall meets the stair lane's walls (z 1 and 12.5), leaving its top open.
   wall("wallWS", x0, x0 + 1.5, z0 + 1.5, 1);
   wall("wallWN", x0, x0 + 1.5, 12.5, z1 - 1.5);
@@ -672,7 +677,11 @@ function buildSurroundings(scene: Scene, r: () => number, m: Mats): void {
     ring(x, z0 - 4 - r() * 8);
     ring(x, z1 + 4 + r() * 8);
   }
-  for (let z = z0; z < z1; z += 5 + r() * 4) ring(x1 + 4 + r() * 8, z);
+  for (let z = z0; z < z1; z += 5 + r() * 4) {
+    // Keep the sunken path to the arcade clear.
+    if (z > BREACH.z0 - 7 && z < BREACH.z1 + 7) continue;
+    ring(x1 + 4 + r() * 8, z);
+  }
   const merge = (name: string, list: Mesh[], material: StandardMaterial) => {
     const merged = Mesh.MergeMeshes(list, true, true)!;
     merged.name = name;

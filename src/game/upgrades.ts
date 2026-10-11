@@ -101,7 +101,7 @@ export class Upgrades {
   }
 
   explore(x: number, z: number): void {
-    if (x < -65 || x > 240 || z < -40 || z > 50) return;
+    if (x < -65 || x > 400 || z < -40 || z > 50) return;
     this.explored.add(`${Math.floor(x / 5)},${Math.floor(z / 5)}`);
   }
 
