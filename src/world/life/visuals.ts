@@ -6,7 +6,7 @@ type Point = [number, number, number];
 
 export type Grain =
   | "fur" | "shell" | "leaf" | "ceramic"
-  | "feather" | "plates" | "stone" | "bronze" | "lacquer" | "rusted" | "bark" | "scales" | "moss";
+  | "feather" | "plates" | "stone" | "bronze" | "lacquer" | "rusted" | "bark" | "scales" | "moss" | "bracket" | "warty";
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -107,6 +107,21 @@ const GRAINS: Partial<Record<Grain, (c: Ctx, s: number, r: () => number, colour:
       c.beginPath(); c.arc(x, y, 4.5, 0, Math.PI); c.fill();
       c.strokeStyle = shade(colour, 1.35, 0.6); c.lineWidth = 0.8; c.beginPath(); c.arc(x, y, 4.5, 0.2, Math.PI - 0.2); c.stroke();
     }
+  },
+  // Bracket fungus: concentric growth bands, paler at the rim (Scroll Cap photo).
+  bracket(c, s, r, colour) {
+    for (let y = 0; y < s; y += 3) { c.fillStyle = shade(colour, 0.78 + 0.3 * Math.sin(y * 0.35) * 0.5 + r() * 0.12); c.fillRect(0, y, s, 3); }
+    for (let i = 0; i < 400; i++) { c.fillStyle = rgba(90, 70, 46, 0.25); c.fillRect(r() * s, r() * s, 1, 3); }
+  },
+  // Puffball skin: polygonal cracked plates with warty dots (Censer Puffball photo).
+  warty(c, s, r, colour) {
+    for (let i = 0; i < 160; i++) {
+      const x = r() * s, y = r() * s, rad = 6 + r() * 10;
+      c.fillStyle = shade(colour, 0.8 + r() * 0.4);
+      c.beginPath(); for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3 + r() * 0.4; c.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad); } c.closePath(); c.fill();
+      c.strokeStyle = rgba(70, 50, 26, 0.6); c.lineWidth = 1.2; c.stroke();
+    }
+    for (let i = 0; i < 700; i++) { c.fillStyle = r() > 0.5 ? rgba(214, 178, 110, 0.6) : rgba(96, 70, 36, 0.5); c.beginPath(); c.arc(r() * s, r() * s, 0.8 + r() * 1.4, 0, 7); c.fill(); }
   },
   // Cushion moss: dense dots in two greens with yellow tips.
   moss(c, s, r, colour) {
