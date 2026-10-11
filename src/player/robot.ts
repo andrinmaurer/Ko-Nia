@@ -26,6 +26,10 @@ const MANTLE_DURATION = 0.45;
 export interface MoveOptions {
   canSprint: boolean;
   depleted: boolean;
+  canClimb?: boolean;
+  canHover?: boolean;
+  canGlide?: boolean;
+  spendEnergy?: (amount: number) => boolean;
   /** Multiplies walking and sprinting speed (wading through water). Default 1. */
   speedScale?: number;
 }
@@ -49,6 +53,21 @@ export class Robot {
   private grounded = false;
   private sprinting = false;
   private mantle: Mantle | undefined;
+  private hoverRemaining = 3;
+  private grapple: Vector3 | undefined;
+  isHovering = false;
+  isGliding = false;
+  get isGrappling(): boolean { return !!this.grapple; }
+
+  beginGrapple(ray: Ray): boolean {
+    const solid = (m: AbstractMesh) => m.checkCollisions && m.isEnabled() && m !== this.collider;
+    const hit = this.scene.pickWithRay(new Ray(ray.origin, ray.direction, 35), solid);
+    if (!hit?.hit || !hit.pickedPoint || (hit.getNormal(true)?.y ?? 0) < 0.45) return false;
+    const landing = hit.pickedPoint.add(new Vector3(0, 0.08, 0));
+    if (this.scene.pickWithRay(new Ray(landing, Vector3.Up(), BODY_HEIGHT), solid)?.hit) return false;
+    // Pull above the lip, then release so gravity settles the feet on the ledge.
+    this.grapple = landing.add(new Vector3(0, BODY_HEIGHT, 0)); this.mantle = undefined; return true;
+  }
   private pelvis!: TransformNode;
   private head!: TransformNode;
   private readonly arms: { shoulder: TransformNode; elbow: TransformNode }[] = [];
@@ -100,6 +119,7 @@ export class Robot {
     this.verticalVelocity = 0;
     this.knockback.setAll(0);
     this.mantle = undefined;
+    this.grapple = undefined; this.hoverRemaining = 3; this.isHovering = this.isGliding = false;
   }
 
   push(impulse: Vector3): void {
@@ -114,6 +134,18 @@ export class Robot {
    */
   update(dt: number, input: Input, yaw: number, faceCamera: boolean, opts: MoveOptions): number {
     const start = this.collider.position.clone();
+    this.isHovering = this.isGliding = false;
+    if (this.grapple) {
+      if (input.wasPressed("Space") || opts.depleted || !opts.spendEnergy?.(6 * dt)) this.grapple = undefined;
+      else {
+        const delta = this.grapple.subtract(start);
+        const step = delta.normalizeToNew().scale(Math.min(delta.length(), 12 * dt));
+        this.collider.computeWorldMatrix(true); this.collider.moveWithCollisions(step);
+        if (Vector3.Distance(this.collider.position, this.grapple) < 0.2 || Vector3.Distance(start, this.collider.position) < step.length() * 0.2) this.grapple = undefined;
+        this.verticalVelocity = 0; this.grounded = false; this.animate(dt, 0);
+        return horizontalDistance(start, this.collider.position);
+      }
+    }
     if (this.mantle) {
       this.updateMantle(dt);
       this.animate(dt, 0);
@@ -131,23 +163,30 @@ export class Robot {
     const moving = move.lengthSquared() > 0;
     const wantsSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
     this.sprinting = moving && wantsSprint && opts.canSprint && !opts.depleted;
-    const speed = (opts.depleted ? DEPLETED_SPEED : this.sprinting ? SPRINT_SPEED : WALK_SPEED) * (opts.speedScale ?? 1);
+    let speed = (opts.depleted ? DEPLETED_SPEED : this.sprinting ? SPRINT_SPEED : WALK_SPEED) * (opts.speedScale ?? 1);
     if (moving) move.normalize();
     const facing = moving ? move.clone() : new Vector3(Math.sin(this.visual.rotation.y), 0, Math.cos(this.visual.rotation.y));
 
     if (input.wasPressed("Space")) {
-      if (this.grounded && !this.tryMantle(facing, true)) {
+      if (this.grounded && !(opts.canClimb && this.tryMantle(facing, true))) {
         this.verticalVelocity = JUMP_VELOCITY;
         this.grounded = false;
       }
     }
     // Holding forward against a ledge while in the air grabs it.
-    if (!this.grounded && moving && this.verticalVelocity < 2.5 && this.tryMantle(facing, false)) {
+    if (opts.canClimb && !this.grounded && moving && this.verticalVelocity < 2.5 && this.tryMantle(facing, false)) {
       this.animate(dt, 0);
       return horizontalDistance(start, this.collider.position);
     }
 
     this.verticalVelocity += GRAVITY * dt;
+    if (!this.grounded && !opts.depleted) {
+      if (opts.canHover && input.isDown("Space") && this.hoverRemaining > 0 && opts.spendEnergy?.(4 * dt)) {
+        this.hoverRemaining = Math.max(0, this.hoverRemaining - dt); this.verticalVelocity = 0.8; this.isHovering = true;
+      } else if (opts.canGlide && input.isDown("KeyF") && this.verticalVelocity < 0 && opts.spendEnergy?.(1.5 * dt)) {
+        this.verticalVelocity = Math.max(-1.8, this.verticalVelocity); speed = 7; this.isGliding = true;
+      }
+    }
     this.knockback.scaleInPlace(Math.max(0, 1 - 6 * dt));
 
     const displacement = new Vector3(
@@ -164,6 +203,7 @@ export class Robot {
     // If we were falling but moved less than intended, something is underneath us.
     if (displacement.y < 0 && actualDy > displacement.y + 1e-4) {
       this.grounded = true;
+      this.hoverRemaining = 3;
       this.verticalVelocity = 0;
     } else if (displacement.y > 0 && actualDy < displacement.y - 1e-4) {
       // Bumped our head.

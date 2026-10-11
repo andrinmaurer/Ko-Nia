@@ -1,7 +1,7 @@
 import type { ScanMode } from "../discovery/logbook";
 import { icon, type IconName } from "./icons";
 
-const MODE_LABELS: Record<ScanMode, string> = { visual: "Visual", bio: "Biological" };
+const MODE_LABELS: Record<ScanMode, string> = { visual: "Visual", bio: "Biological", audio: "Audio", night: "Night vision", thermal: "Thermal", genetic: "Genetic", radiation: "Radiation" };
 const CARDINALS: [string, number][] = [
   ["N", 0],
   ["NE", 45],

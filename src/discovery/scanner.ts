@@ -12,8 +12,8 @@ import { ENTRY_BY_ID, stepsFor, unknownNumber, type EntryDef } from "./entries";
 import { locationAt } from "./locations";
 import type { EntryProgress, Learned, ScanMode } from "./logbook";
 
-export const SCAN_MODES: ScanMode[] = ["visual", "bio"];
-const RANGE: Record<ScanMode, number> = { visual: 25, bio: 8 };
+export const SCAN_MODES: ScanMode[] = ["visual", "bio", "audio", "night", "thermal", "genetic", "radiation"];
+const RANGE: Record<ScanMode, number> = { visual: 25, bio: 8, audio: 25, night: 25, thermal: 35, genetic: 15, radiation: 25 };
 /** Small or moving things can be targeted by aiming within this angle of them. */
 const AIM_ASSIST = 0.07;
 const OUTLINE = new Color3(0.55, 0.95, 1);
@@ -51,15 +51,27 @@ export class Scanner {
     this.hud.setLens(this.lensOn, this.mode);
   }
 
+  get availableModes(): ScanMode[] {
+    return SCAN_MODES.filter((m) => m === "visual" || m === "bio" || m === "audio" || this.ctx.upgrades.has(m));
+  }
+
   cycleMode(step: number): void {
-    const i = SCAN_MODES.indexOf(this.mode);
-    this.mode = SCAN_MODES[(i + step + SCAN_MODES.length) % SCAN_MODES.length];
+    const modes = this.availableModes;
+    const i = modes.indexOf(this.mode);
+    this.mode = modes[(i + step + modes.length) % modes.length];
     this.hud.setLens(this.lensOn, this.mode);
   }
 
   update(dt: number): void {
     this.cooldown = Math.max(0, this.cooldown - dt);
+    for (const s of this.scannables) {
+      const animal = ENTRY_BY_ID.get(s.entryId)?.category === "fauna";
+      const warm = this.lensOn && this.mode === "thermal" && animal && (s.isAvailable?.() ?? true) && Vector3.Distance(s.getPosition(), this.ctx.robot.position) <= 35 && this.visible(this.ctx.robot.eyePosition, s.getPosition(), s);
+      for (const m of s.meshes) { m.renderOverlay = !!warm; if (warm) { m.overlayColor = new Color3(1, 0.3, 0.05); m.overlayAlpha = 0.65; } }
+    }
     if (!this.lensOn) return;
+    if ((this.mode === "night" || this.mode === "thermal") && !this.ctx.status.trySpend(2 * dt)) { this.toggleLens(); this.hud.notice("Lens powered down: recharge required."); return; }
+    if (this.mode === "radiation") { this.setTarget(undefined); this.hud.setTarget("Ambient radiation", "Background levels · safe", true); return; }
     this.setTarget(this.findTarget());
     const t = this.target;
     if (!t) {
@@ -82,13 +94,18 @@ export class Scanner {
       this.hud.notice("Sensors clogged with spores. Wait for them to clear.");
       return;
     }
+    if (this.mode === "radiation") {
+      if (this.ctx.status.trySpend(25)) this.hud.notice("Radiation survey: background levels. No active sources detected in these districts.");
+      else this.hud.notice("Not enough energy to survey");
+      return;
+    }
     if (!t) {
       this.hud.notice("Nothing to scan");
       return;
     }
     const def = ENTRY_BY_ID.get(t.scannable.entryId)!;
     const organism = stepsFor(def) === 3;
-    if (this.mode === "bio" && !organism) {
+    if ((this.mode === "bio" || this.mode === "genetic") && !organism) {
       this.hud.notice("No biological signature");
       return;
     }
@@ -96,7 +113,7 @@ export class Scanner {
       this.hud.notice(this.mode === "bio" ? "Too far for a Biological scan" : "Too far to scan");
       return;
     }
-    if (!this.ctx.status.trySpend(SCAN_COST)) {
+    if (!this.ctx.status.trySpend(this.mode === "genetic" ? 25 : SCAN_COST)) {
       this.hud.notice("Not enough energy to scan");
       return;
     }
@@ -111,6 +128,7 @@ export class Scanner {
 
     this.hud.shutter();
     this.announce(def, learned);
+    if (this.mode === "genetic") this.hud.caption(`Lineage analysis: ${def.latin ?? def.name}`, 5);
     if (newLocation) this.hud.toast("Location recorded", ENTRY_BY_ID.get(locationId)!.name, { kind: "place" });
     this.onScanned();
   }

@@ -13,6 +13,7 @@ export interface GameContext {
   time: DayCycle;
   wind: Wind;
   logbook: Logbook;
+  upgrades: import("./upgrades").Upgrades;
   /** Horizontal robot speed in m/s this frame. */
   robotSpeed: number;
   /** Shows a sound caption at the bottom of the screen (no audio yet). */
