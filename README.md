@@ -67,3 +67,7 @@ UI styling comes from the Ko-Nia design system (Terminal theme), copied into `sr
 | `src/player/` | Robot controller (incl. ledge climbing), camera, energy and damage |
 | `src/game/` | Day/night cycle, adaptive quality and shared game context |
 | `src/ui/` | HUD, Logbook screen, icons, design-system CSS |
+
+## Discoverable asset references
+
+The [discoverable asset blockout and visual inventory](docs/art/discoverables/discoverable-assets.md) covers all 18 MVP entries, with individual species/object turnarounds, location sheets, generation prompts and modeling notes. These are first-pass concept references.

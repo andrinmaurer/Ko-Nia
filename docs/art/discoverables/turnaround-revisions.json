@@ -1,0 +1,31 @@
+[
+  {
+    "n": "15",
+    "slug": "shrine-street",
+    "prompt": "Edit image 1 (Shrine Street sheet) only. Images 2 and 3 are design references. Preserve sheet style and the surrounding city ruin design. Replace EVERY train/tram carriage, railway track and elevated transit structure in ALL panels and material insets with the broken CONCRETE PEDESTRIAN FOOTBRIDGE design from image 2: exposed rebar, one rubble ramp, opposite roof connection, hanging Wisteria. No trains anywhere. Keep a single small shrine at the LEFT street end, central Relay Station, and noodle shop at RIGHT. Correct numbered markers: 1 central relay, 2 street, 3 right noodle shop, 4 pedestrian bridge, 5 left shrine, 6 alley, 7 perimeter rubble. No duplicate 5 at noodle shop. Keep all viewpoints spatially coherent. Remove electric glow in abandoned shop/lanterns; daylight only. Bottom-right scale footprint diagram must show actual 120 by 60 m block, never the torii silhouette. Keep title and readable labels.",
+    "refs": [
+      "turnarounds/15-shrine-street.png",
+      "turnarounds/17-broken-overpass.png",
+      "turnarounds/18-neighborhood-shrine.png"
+    ]
+  },
+  {
+    "n": "16",
+    "slug": "noodle-shop",
+    "prompt": "Edit image 1 Noodle Shop environment sheet. Image 2 is a reference for the mantis and its foam-textured egg case; image 3 is the vending machine design. Preserve architecture, layout and sheet style. In ALL views show an uninhabited ruined restaurant, daylight entering holes; remove ALL active electric lamps and lit lanterns. Show rusted toppled vending cabinet consistently INSIDE ground floor, not a working machine outside. Correct mantis egg territory inset: REMOVE bird twig nest in the tree. Show grey-green mantis from image 2 beside a small pale foam-textured ootheca attached to a mossy wall in the collapsed BACK ROOM. It is a mantis egg case, never a bird nest. Safe roof sightline inset must clearly look DOWN through roof opening at that same egg territory. Remove misleading 9 m BUILDING HEIGHT in silhouette inset: 9 m is floor-plan depth, not height; show plan footprint 12 m by 9 m. Keep front, plan, side cutaway, interior and details.",
+    "refs": [
+      "turnarounds/16-noodle-shop.png",
+      "turnarounds/09-vault-mantis.png",
+      "turnarounds/10-vending-machine.png"
+    ]
+  },
+  {
+    "n": "17",
+    "slug": "broken-overpass",
+    "prompt": "Edit image 1 Broken Overpass sheet. Image 2 is the correct Predecessor Unit design. Preserve the concrete pedestrian bridge, rubble ramp, roof connection, Wisteria, views, labels and layout. Replace the pod/oval sculpture marked predecessor in EVERY panel and predecessor detail inset with the deactivated SEATED HUMANOID ROBOT from image 2: binocular twin-lens head, cracked ivory ceramic armor over graphite skeleton, articulated arms, hands, legs, folded solar panels, dark sensors, rust-red Rebar Ivy draped over it. Seat it at highest point beside roof connection, approximately 1.6 m standing equivalent. Never an egg, capsule or sculpture. Same robot in every view. Neutral daylight. Keep all else unchanged.",
+    "refs": [
+      "turnarounds/17-broken-overpass.png",
+      "turnarounds/14-predecessor-unit.png"
+    ]
+  }
+]
