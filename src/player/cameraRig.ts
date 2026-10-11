@@ -52,7 +52,7 @@ export class CameraRig {
       const back = dir.scale(-1);
       const hit = this.scene.pickWithRay(
         new Ray(pivot, back, THIRD_PERSON_DISTANCE),
-        (m) => m.checkCollisions && m.isVisible,
+        (m) => m.checkCollisions && m.isVisible && m.isEnabled(),
       );
       const target = hit?.hit ? Math.max(0.6, hit.distance - 0.3) : THIRD_PERSON_DISTANCE;
       // Snap in fast, ease back out slowly.

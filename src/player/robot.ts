@@ -183,7 +183,7 @@ export class Robot {
   /** Looks for a ledge in front of the robot and starts climbing onto it. */
   private tryMantle(dir: Vector3, fromGround: boolean): boolean {
     const pos = this.collider.position;
-    const solid = (m: AbstractMesh) => m.checkCollisions && m !== this.collider;
+    const solid = (m: AbstractMesh) => m.checkCollisions && m !== this.collider && m.isEnabled();
     const wall = this.scene.pickWithRay(new Ray(pos.add(new Vector3(0, 0.8, 0)), dir, 0.9), solid);
     if (!wall?.hit) return false;
 

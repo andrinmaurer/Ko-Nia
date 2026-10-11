@@ -10,6 +10,7 @@ import {
 import { buildDressing } from "./dressing";
 import { dressArtifacts } from "./artifacts";
 import { guardianVisual } from "./life/visuals";
+import { buildRelayModel } from "./relay";
 import { card, surface, type Surface } from "./textures";
 import { worldUV } from "./uv";
 
@@ -82,7 +83,7 @@ export function buildShrineStreet(scene: Scene, shadows: ShadowGenerator): Shrin
   buildShrine(scene, block, solid, mat);
   buildVegetation(scene, shadows, mat);
   buildPuddle(scene, mat);
-  const relayStation = buildRelayStation(scene, solid, mat);
+  const relayStation = buildRelayModel(scene, solid, mat, -12, 2);
   buildDressing(scene, shadows);
   dressArtifacts(scene, shadows);
 
@@ -106,7 +107,9 @@ function buildBoundary(block: BlockFn, mat: Materials): void {
   block("boundaryNorth", -62, 62, 25, 27, 22, mat.facadeDark);
   block("boundarySouth", -62, 62, -28, -26, 18, mat.facadeDark);
   block("boundaryWest", -64, -60, -28, 27, 24, mat.facadeDark);
-  block("boundaryEast", 60, 64, -28, 27, 20, mat.facadeDark);
+  // Gap at z -4.5..-1 opens onto the stair lane up to Temple Hill (see stairLane.ts).
+  block("boundaryEastS", 60, 64, -28, -4.5, 20, mat.facadeDark);
+  block("boundaryEastN", 60, 64, -1, 27, 20, mat.facadeDark);
   // Rubble at the west end of the street.
   block("rubbleWest1", -60, -55, -5, 5, 2.5, mat.rubble);
   block("rubbleWest2", -60, -57, -3, 3, 4.5, mat.rubble);
@@ -287,7 +290,7 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
   }
 
   // Shrine trees.
-  for (const [x, z] of [[58, -4], [58, 4], [49, -4.5]]) {
+  for (const [x, z] of [[59, 0.4], [58, 4], [49, -4.5]]) {
     const t = MeshBuilder.CreateCylinder(`shrineTreeTrunk${x}${z}`, { diameter: 0.6, height: 6 }, scene);
     t.position.set(x, 3, z);
     t.checkCollisions = true;
@@ -313,73 +316,6 @@ function buildPuddle(scene: Scene, mat: Materials): void {
   water.position.set(25, 0.03, -1.5);
   water.material = mat.water;
   water.isPickable = false;
-}
-
-/**
- * Relay Station after the reference sheet: stepped base, slim column with a glowing
- * data core, a ring of solar panels and an antenna array on top (about 6.5 m).
- */
-function buildRelayStation(scene: Scene, solid: SolidFn, mat: Materials): Mesh {
-  const x = -12;
-  const z = 2;
-  const deco = (mesh: Mesh, material: StandardMaterial, cast = true) => {
-    solid(mesh, material, cast);
-    mesh.checkCollisions = false;
-    mesh.isPickable = false;
-    return mesh;
-  };
-  // Stepped base, low enough to walk over.
-  for (const [r, y] of [[2.2, 0.08], [1.6, 0.2]] as const) {
-    const step = MeshBuilder.CreateCylinder("relayStep", { diameter: r * 2, height: 0.16, tessellation: 8 }, scene);
-    step.position.set(x, y, z);
-    deco(step, mat.concrete, false);
-  }
-  const pillar = MeshBuilder.CreateCylinder("relayStation", { diameterTop: 0.45, diameterBottom: 1.1, height: 6, tessellation: 8 }, scene);
-  pillar.position.set(x, 3, z);
-  solid(pillar, mat.alien);
-  // Framing struts around the column.
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-    const strut = MeshBuilder.CreateBox("relayStrut", { width: 0.12, height: 5.2, depth: 0.12 }, scene);
-    strut.position.set(x + Math.cos(a) * 0.55, 2.8, z + Math.sin(a) * 0.55);
-    strut.rotation.set(Math.sin(a) * 0.06, 0, -Math.cos(a) * 0.06);
-    deco(strut, mat.metal);
-  }
-  // Data core: glowing capsule behind the street-side window.
-  const core = MeshBuilder.CreateCylinder("relayCore", { diameter: 0.5, height: 1.6, tessellation: 12 }, scene);
-  core.position.set(x, 1.6, z - 0.32);
-  core.material = mat.glow;
-  core.isPickable = false;
-  // Solar panel ring.
-  const hub = MeshBuilder.CreateCylinder("relayHub", { diameter: 1.2, height: 0.3, tessellation: 8 }, scene);
-  hub.position.set(x, 4.6, z);
-  deco(hub, mat.rust);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    const panel = MeshBuilder.CreateBox("relayPanel", { width: 1.9, height: 0.06, depth: 0.9 }, scene);
-    panel.position.set(x + Math.cos(a) * 1.55, 4.75 + (i % 2) * 0.12, z + Math.sin(a) * 1.55);
-    panel.rotation.set(0, -a, 0.22);
-    deco(panel, mat.solar);
-  }
-  // Antenna array.
-  for (const [dx, dz, h] of [[0, 0, 2.2], [0.25, 0.1, 1.4], [-0.2, -0.15, 1.7]] as const) {
-    const mast = MeshBuilder.CreateCylinder("relayMast", { diameter: 0.06, height: h, tessellation: 4 }, scene);
-    mast.position.set(x + dx, 6 + h / 2, z + dz);
-    deco(mast, mat.metal, false);
-  }
-  const ring = MeshBuilder.CreateTorus("relayRing", { diameter: 1.4, thickness: 0.06, tessellation: 32 }, scene);
-  ring.position.set(x, 3.4, z);
-  ring.material = mat.glow;
-  ring.isPickable = false;
-  scene.onBeforeRenderObservable.add(() => {
-    ring.rotation.y += 0.01;
-    ring.rotation.x = Math.sin(performance.now() / 1500) * 0.3;
-  });
-  const tip = MeshBuilder.CreateSphere("relayTip", { diameter: 0.22, segments: 8 }, scene);
-  tip.position.set(x, 8.2, z);
-  tip.material = mat.glow;
-  tip.isPickable = false;
-  return pillar;
 }
 
 /** Metres covered by one texture repeat (u, v) for each textured material. */

@@ -8,7 +8,7 @@ type Tab = "biology" | "locations" | "artifacts" | "history" | "anomalies" | "or
 type Sort = "discovery" | "name" | "completion";
 
 const TABS: { id: Tab; label: string; icon: IconName; categories: Category[] }[] = [
-  { id: "biology", label: "Biology", icon: "leaf", categories: ["flora", "fauna"] },
+  { id: "biology", label: "Biology", icon: "leaf", categories: ["flora", "fungi", "fauna"] },
   { id: "locations", label: "Locations", icon: "pin", categories: ["locations"] },
   { id: "artifacts", label: "Artifacts", icon: "cube", categories: ["artifacts"] },
   { id: "history", label: "History", icon: "book", categories: [] },
@@ -18,13 +18,15 @@ const TABS: { id: Tab; label: string; icon: IconName; categories: Category[] }[]
 
 const SUBCATEGORY: Partial<Record<Category, { label: string; icon: IconName }>> = {
   flora: { label: "Flora", icon: "sprout" },
+  fungi: { label: "Fungi", icon: "mushroom" },
   fauna: { label: "Fauna", icon: "paw" },
 };
 
 const BREADCRUMB: Record<Category, string> = {
   flora: "FLORA / SPECIES",
+  fungi: "FUNGI / SPECIES",
   fauna: "FAUNA / SPECIES",
-  locations: "LOCATIONS / SHRINE STREET",
+  locations: "LOCATIONS / OLD TOWN",
   artifacts: "ARTIFACTS / OBJECT",
   origin: "ORIGIN / RECORD",
 };

@@ -78,6 +78,10 @@ export class Scanner {
     if (!this.lensOn || this.cooldown > 0) return;
     this.cooldown = 0.6;
     const t = this.target;
+    if (this.ctx.sensorsJammed > 0) {
+      this.hud.notice("Sensors clogged with spores. Wait for them to clear.");
+      return;
+    }
     if (!t) {
       this.hud.notice("Nothing to scan");
       return;
@@ -159,7 +163,7 @@ export class Scanner {
     const ray = this.camera.getForwardRay(60);
 
     // 1. Whatever the reticle points at directly.
-    const hit = scene.pickWithRay(ray, (m) => m.isVisible && (this.meshOwner.has(m) || m.checkCollisions));
+    const hit = scene.pickWithRay(ray, (m) => m.isVisible && m.isEnabled() && (this.meshOwner.has(m) || m.checkCollisions));
     if (hit?.hit && hit.pickedMesh && hit.pickedPoint) {
       const s = this.meshOwner.get(hit.pickedMesh);
       if (s && (s.isAvailable?.() ?? true)) return { scannable: s, distance: Vector3.Distance(eye, hit.pickedPoint) };
@@ -170,7 +174,8 @@ export class Scanner {
     let bestAngle = AIM_ASSIST;
     const blockingDistance = hit?.hit ? hit.distance : Infinity;
     for (const s of this.scannables) {
-      if (!(s.isAvailable?.() ?? true)) continue;
+      // Scannables in the block that isn't drawn right now are disabled.
+      if (!s.meshes[0]?.isEnabled() || !(s.isAvailable?.() ?? true)) continue;
       const p = s.getPosition();
       const to = p.subtract(ray.origin);
       const along = to.length();
@@ -189,7 +194,7 @@ export class Scanner {
     const length = dir.length();
     const hit = this.ctx.scene.pickWithRay(
       new Ray(from, dir.normalize(), length),
-      (m) => m.checkCollisions && m.isVisible && !s.meshes.includes(m),
+      (m) => m.checkCollisions && m.isVisible && m.isEnabled() && !s.meshes.includes(m),
     );
     return !hit?.hit || hit.distance > length - 0.5;
   }
