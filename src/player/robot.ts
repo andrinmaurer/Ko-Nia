@@ -30,6 +30,8 @@ export interface MoveOptions {
   canHover?: boolean;
   canGlide?: boolean;
   spendEnergy?: (amount: number) => boolean;
+  /** Overrides the held Shift key (sprint set to toggle in the settings). */
+  sprint?: boolean;
   /** Multiplies walking and sprinting speed (wading through water). Default 1. */
   speedScale?: number;
 }
@@ -161,7 +163,7 @@ export class Robot {
     if (input.isDown("KeyA")) move.subtractInPlace(right);
 
     const moving = move.lengthSquared() > 0;
-    const wantsSprint = input.isDown("ShiftLeft") || input.isDown("ShiftRight");
+    const wantsSprint = opts.sprint ?? (input.isDown("ShiftLeft") || input.isDown("ShiftRight"));
     this.sprinting = moving && wantsSprint && opts.canSprint && !opts.depleted;
     let speed = (opts.depleted ? DEPLETED_SPEED : this.sprinting ? SPRINT_SPEED : WALK_SPEED) * (opts.speedScale ?? 1);
     if (moving) move.normalize();

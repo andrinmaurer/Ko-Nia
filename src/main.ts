@@ -40,6 +40,8 @@ import { Wind } from "./world/wind";
 import { Upgrades, TRANSMISSIONS, type UpgradeId } from "./game/upgrades";
 import { UpgradesView } from "./ui/upgradesView";
 import { MapView } from "./ui/mapView";
+import { loadSettings } from "./game/settings";
+import { SettingsView } from "./ui/settingsView";
 
 type State = "start" | "playing" | "paused" | "logbook" | "upgrades" | "map" | "transition";
 
@@ -161,6 +163,31 @@ for (const m of scene.meshes) if (m.material?.name.startsWith("card:") || m.name
 const detail = scene.meshes.filter((m) => m.name === "ferns" || m.name === "giantLeaves" || m.material?.name === "card:foliage");
 const quality = new QualityController(engine, shadows, glowLayer, detail);
 
+// --- Settings --------------------------------------------------------------------
+
+const settings = loadSettings();
+
+function applySettings(): void {
+  rig.lookSpeed = settings.lookSpeed;
+  rig.invertLook = settings.invertLook;
+  rig.camera.fov = (settings.fov * Math.PI) / 180;
+  quality.setFixed(settings.quality === "auto" ? undefined : settings.quality);
+  document.documentElement.style.setProperty("--ui-scale", String(settings.textSize / 100));
+  document.body.classList.toggle("reduce-motion", settings.reducedMotion);
+  document.body.classList.toggle("hide-fps", !settings.showFps);
+  hud.reducedMotion = settings.reducedMotion;
+  if (settings.sprint === "hold") sprintLatched = false;
+}
+
+/** Sprint state when the settings make Shift a toggle. */
+let sprintLatched = false;
+let menuMode: "start" | "continue" | "paused" = "start";
+const settingsView = new SettingsView(startMenu, settings, applySettings, () => {
+  startScreen.classList.remove("show-settings");
+  renderMenu(menuMode);
+});
+applySettings();
+
 let state: State = "start";
 const logbookView = new LogbookView(logbook, time, () => regions.active, closeLogbook);
 logbook.onChange(() => hud.setUnread(logbook.unread.size));
@@ -199,10 +226,13 @@ renderMenu(saved ? "continue" : "start");
 
 /** Title / pause menu. "New game" clears the local save. */
 function renderMenu(mode: "start" | "continue" | "paused"): void {
+  menuMode = mode;
+  startScreen.classList.remove("show-settings");
   const first = mode === "start" ? "Start" : "Continue";
   startMenu.innerHTML =
     `<button class="kn-menu-item" data-action="play" aria-current="true">${icon("play")}${first}</button>` +
     (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("plus")}New game</button>`) +
+    `<button class="kn-menu-item" data-action="settings">${icon("sliders")}Settings</button>` +
     (mode === "paused" ? `<button class="kn-menu-item" data-action="report">${icon("clipboard")}Copy playtest report</button>` : "");
 }
 
@@ -226,6 +256,10 @@ startMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   const action = (e.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
   if (action === "play") input.requestLock();
+  if (action === "settings") {
+    startScreen.classList.add("show-settings");
+    settingsView.render();
+  }
   if (action === "report") void copyReport((e.target as HTMLElement).closest<HTMLElement>("[data-action]")!);
   if (action === "new") {
     clearSave();
@@ -433,7 +467,9 @@ function updateGame(dt: number): void {
   wind.update(dt);
 
   const wading = regions.active === "arcade" && waterAt(robot.position) === "wade";
+  if (settings.sprint === "toggle" && (input.wasPressed("ShiftLeft") || input.wasPressed("ShiftRight"))) sprintLatched = !sprintLatched;
   const moved = robot.update(dt, input, rig.yaw, rig.mode === "first", {
+    sprint: settings.sprint === "toggle" ? sprintLatched : undefined,
     canSprint: upgrades.has("sprint"),
     canClimb: upgrades.has("climb"),
     canHover: upgrades.has("hover"),
@@ -526,7 +562,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+  settings, applySettings, settingsView, robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

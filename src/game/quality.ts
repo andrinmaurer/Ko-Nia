@@ -33,6 +33,8 @@ const SAMPLE_SECONDS = 2;
 
 export class QualityController {
   level = 0;
+  /** Set when the player picks a fixed level in the settings; the automatic stepping stops. */
+  private fixed = false;
   private frames = 0;
   private elapsed = 0;
   private goodStreak = 0;
@@ -49,6 +51,15 @@ export class QualityController {
     window.addEventListener("resize", () => this.applyResolution());
   }
 
+  /** `undefined` returns to automatic; 1–5 pins a level (5 = highest). */
+  setFixed(q: number | undefined): void {
+    this.fixed = q !== undefined;
+    if (q !== undefined) {
+      this.level = LEVELS.length - q;
+      this.apply();
+    }
+  }
+
   get label(): string {
     return `Q${LEVELS.length - this.level}`;
   }
@@ -56,7 +67,7 @@ export class QualityController {
   /** Call once per rendered frame with the real frame time. */
   update(dt: number): void {
     // Ignore hitches (tab switch, Logbook open) and the first seconds after a change.
-    if (dt > 0.5) return;
+    if (dt > 0.5 || this.fixed) return;
     if (this.settle > 0) {
       this.settle -= dt;
       return;

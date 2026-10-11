@@ -159,7 +159,11 @@ export class Hud {
     this.el.hint.classList.toggle("show", html !== undefined);
   }
 
+  /** Skips the scan flash and HUD animations (settings). */
+  reducedMotion = false;
+
   shutter(): void {
+    if (this.reducedMotion) return;
     const s = this.el.shutter;
     s.classList.remove("flash");
     void s.offsetWidth; // restart the animation
