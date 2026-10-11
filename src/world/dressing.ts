@@ -48,6 +48,9 @@ export function buildDressing(scene: Scene, shadows: ShadowGenerator): void {
     grass: card(scene, "grassTuft"),
     vine: card(scene, "vine"),
     ivy: card(scene, "ivy"),
+    fern: card(scene, "fern"),
+    foliage: card(scene, "foliage"),
+    bigLeaf: card(scene, "bigLeaf"),
     sign: card(scene, "sign"),
     wire: flat(scene, "wire", 0.08, 0.08, 0.08),
     paint: flat(scene, "lanePaint", 0.72, 0.7, 0.62),
@@ -66,6 +69,7 @@ export function buildDressing(scene: Scene, shadows: ShadowGenerator): void {
   buildStreetClutter(scene, r, put, m);
   buildGreenery(scene, r, put, m);
   buildGrass(scene, r, m.grass);
+  buildUndergrowth(scene, r, m);
 
   for (const batch of batches.values()) {
     const merged = Mesh.MergeMeshes(batch.meshes, true, true);
@@ -379,7 +383,74 @@ function tree(scene: Scene, r: () => number, put: Put, m: Mats, x: number, y: nu
     blob.scaling.y = 0.7;
     blob.position.set(x + (r() - 0.5) * height * 0.4, y + height * (0.8 + r() * 0.3), z + (r() - 0.5) * height * 0.4);
     put(blob, m.leaves, { cast: true });
+    leafShell(scene, put, m, blob);
   }
+}
+
+/**
+ * Wraps a slightly larger shell of cut-out leaf clumps around a canopy or bush so
+ * its outline reads as foliage instead of a smooth ball.
+ */
+export function leafShell(scene: Scene, put: Put, m: Mats, blob: Mesh): void {
+  const shell = MeshBuilder.CreateSphere("leafShell", { diameter: 1, segments: 6 }, scene);
+  shell.scaling.copyFrom(blob.scaling).scaleInPlace(1.22);
+  shell.position.copyFrom(blob.position);
+  // The solid blob inside already casts the shadow.
+  put(shell, m.foliage, { tile: 1.6 });
+}
+
+// --- Undergrowth: ferns and giant leaves (thin instances) -------------------------------
+
+function buildUndergrowth(scene: Scene, r: () => number, m: Mats): void {
+  const ferns: Matrix[] = [];
+  const leaves: Matrix[] = [];
+  const at = (list: Matrix[], x: number, z: number, scale: number, y = 0) =>
+    list.push(Matrix.Compose(new Vector3(scale, scale * (0.8 + r() * 0.4), scale), Quaternion.FromEulerAngles(0, r() * Math.PI * 2, 0), new Vector3(x, y, z)));
+  // Fern beds along the wall bases and kerbs.
+  for (let i = 0; i < 160; i++) {
+    const x = -58 + r() * 116;
+    const z = (r() < 0.5 ? 1 : -1) * (3.9 + r() * 1);
+    if (clear(x, z)) at(ferns, x, z, 0.8 + r() * 0.9);
+  }
+  // Alley, shrine grounds and the rubble heaps: the wildest parts of the block.
+  for (let i = 0; i < 70; i++) at(ferns, -34 + r() * 72, -20.6 - r() * 4.8, 0.8 + r() * 1.1);
+  for (let i = 0; i < 60; i++) at(ferns, 46 + r() * 13, (r() < 0.5 ? 1 : -1) * (4.5 + r() * 4), 0.8 + r() * 1.2);
+  for (let i = 0; i < 30; i++) at(ferns, -59 + r() * 4, (r() - 0.5) * 10, 0.8 + r(), 1 + r() * 2);
+  // Giant leaves in clumps, mostly where the light reaches.
+  for (let i = 0; i < 40; i++) {
+    const x = -56 + r() * 112;
+    const z = (r() < 0.5 ? 1 : -1) * (4.4 + r() * 0.5);
+    if (clear(x, z)) at(leaves, x, z, 1.1 + r() * 1.2);
+  }
+  for (let i = 0; i < 24; i++) at(leaves, -34 + r() * 72, -21 - r() * 4, 1.2 + r() * 1.3);
+  for (let i = 0; i < 12; i++) at(leaves, 47 + r() * 12, (r() < 0.5 ? 1 : -1) * (5 + r() * 3), 1.3 + r() * 1.2);
+
+  scatter(scene, "ferns", m.fern, 1.4, 1.1, 2, ferns);
+  scatter(scene, "giantLeaves", m.bigLeaf, 1.6, 1.8, 2, leaves);
+}
+
+/** One crossed-card plant, thin-instanced at every matrix. */
+function scatter(scene: Scene, name: string, material: StandardMaterial, width: number, height: number, planes: number, at: Matrix[]): void {
+  const parts: Mesh[] = [];
+  for (let i = 0; i < planes; i++) {
+    const p = MeshBuilder.CreatePlane(`${name}Card`, { width, height }, scene);
+    p.rotation.y = (i / planes) * Math.PI;
+    // Lean the cards outwards a little so the clump opens up like a real plant.
+    p.rotation.x = 0.12;
+    p.bakeCurrentTransformIntoVertices();
+    parts.push(p);
+  }
+  const mesh = Mesh.MergeMeshes(parts, true)!;
+  mesh.name = name;
+  mesh.bakeTransformIntoVertices(Matrix.Translation(0, height / 2 - 0.05, 0));
+  mesh.material = material;
+  mesh.isPickable = false;
+  mesh.receiveShadows = true;
+  const buffer = new Float32Array(at.length * 16);
+  at.forEach((mtx, i) => mtx.copyToArray(buffer, i * 16));
+  mesh.thinInstanceSetBuffer("matrix", buffer, 16, true);
+  mesh.thinInstanceRefreshBoundingInfo();
+  mesh.freezeWorldMatrix();
 }
 
 // --- Grass tufts (thin instances) -------------------------------------------------------

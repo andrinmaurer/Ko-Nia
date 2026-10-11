@@ -8,6 +8,7 @@ import {
   Vector3,
 } from "../../babylon";
 import type { GameContext, LifeForm, Scannable } from "../../game/context";
+import { card } from "../textures";
 import { mat } from "./materials";
 
 /** The five MVP plant species. Positions match the Shrine Street greybox. */
@@ -127,17 +128,33 @@ class ShutterFerns implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    this.openMat = mat(scene, "fernOpen", 0.45, 0.75, 0.2);
-    this.openMat.emissiveColor = new Color3(0.12, 0.16, 0.02);
-    this.closedMat = mat(scene, "fernClosed", 0.16, 0.36, 0.14);
+    // Brighter, larger and more yellow than the common ferns around them.
+    const fronds = card(scene, "fern");
+    const tinted = (name: string, tint: Color3) => {
+      const m = new StandardMaterial(name, scene);
+      m.diffuseTexture = fronds.diffuseTexture;
+      m.diffuseColor = tint;
+      m.specularColor = Color3.Black();
+      m.backFaceCulling = false;
+      m.alphaCutOff = fronds.alphaCutOff;
+      return m;
+    };
+    this.openMat = tinted("fernOpen", new Color3(1.35, 1.45, 0.55));
+    this.openMat.emissiveColor = new Color3(0.14, 0.2, 0.02);
+    this.closedMat = tinted("fernClosed", new Color3(0.5, 0.75, 0.45));
     for (let x = -50; x < 40; x += 7 + (Math.abs(x) % 5)) {
       for (const z of [-4.6, 4.6]) {
-        const mesh = MeshBuilder.CreateCylinder(
-          `fern${x}${z}`,
-          { diameterTop: 1.2, diameterBottom: 0.1, height: 0.7, tessellation: 6 },
-          scene,
-        );
-        mesh.position.set(x, 0.35, z);
+        const cards: Mesh[] = [];
+        for (let i = 0; i < 4; i++) {
+          const p = MeshBuilder.CreatePlane("fernCard", { width: 1.6, height: 1.1 }, scene);
+          p.position.y = 0.2;
+          p.rotation.set(0.18, (i / 4) * Math.PI + x, 0);
+          p.bakeCurrentTransformIntoVertices();
+          cards.push(p);
+        }
+        const mesh = Mesh.MergeMeshes(cards, true)!;
+        mesh.name = `fern${x}${z}`;
+        mesh.position.set(x, 0.15, z);
         const fern = { mesh, open: true, calm: 0 };
         this.ferns.push(fern);
         this.scannables.push({

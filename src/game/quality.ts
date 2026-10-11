@@ -1,4 +1,4 @@
-import type { Engine, GlowLayer, ShadowGenerator } from "../babylon";
+import type { AbstractMesh, Engine, GlowLayer, ShadowGenerator } from "../babylon";
 
 /**
  * Keeps the frame rate at or above the 30 FPS target by trading resolution and
@@ -10,14 +10,16 @@ interface Level {
   pixelRatio: number;
   shadowMap: number;
   glow: boolean;
+  /** Fern beds, giant leaves and leaf shells: lots of cut-out overdraw. */
+  detail: boolean;
 }
 
 const LEVELS: Level[] = [
-  { pixelRatio: 1.5, shadowMap: 2048, glow: true },
-  { pixelRatio: 1.2, shadowMap: 2048, glow: true },
-  { pixelRatio: 1, shadowMap: 1024, glow: true },
-  { pixelRatio: 0.85, shadowMap: 1024, glow: false },
-  { pixelRatio: 0.7, shadowMap: 512, glow: false },
+  { pixelRatio: 1.5, shadowMap: 2048, glow: true, detail: true },
+  { pixelRatio: 1.2, shadowMap: 2048, glow: true, detail: true },
+  { pixelRatio: 1, shadowMap: 1024, glow: true, detail: false },
+  { pixelRatio: 0.85, shadowMap: 1024, glow: false, detail: false },
+  { pixelRatio: 0.7, shadowMap: 512, glow: false, detail: false },
 ];
 
 const TARGET_FPS = 30;
@@ -34,6 +36,7 @@ export class QualityController {
     private readonly engine: Engine,
     private readonly shadows: ShadowGenerator,
     private readonly glow: GlowLayer,
+    private readonly detail: AbstractMesh[] = [],
   ) {
     this.apply();
   }
@@ -78,6 +81,7 @@ export class QualityController {
     const map = this.shadows.getShadowMap();
     if (map && map.getSize().width !== l.shadowMap) map.resize(l.shadowMap);
     this.glow.isEnabled = l.glow;
+    for (const m of this.detail) m.setEnabled(l.detail);
     this.settle = 2;
   }
 }
