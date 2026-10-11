@@ -101,7 +101,11 @@ export class Atmosphere {
     this.scene.fogDensity = m.fogDensity;
     this.scene.clearColor = new Color4(m.horizon.r, m.horizon.g, m.horizon.b, 1);
     this.scene.ambientColor = m.bounce;
-    this.scene.imageProcessingConfiguration.exposure = m.exposure * (nightVision ? 1.8 : 1);
+    // Changing exposure re-checks every material in the scene, so only step it
+    // in 0.01 increments (too small to see) instead of every frame.
+    const exposure = Math.round(m.exposure * (nightVision ? 1.8 : 1) * 100) / 100;
+    const ip = this.scene.imageProcessingConfiguration;
+    if (ip.exposure !== exposure) ip.exposure = exposure;
     const toSun = this.sun.direction.scale(-1);
     const glow = day > 0.05 ? m.sun.scale(0.9) : m.sun.scale(0.12);
     // Puddles mirror the sky's colour.
