@@ -15,6 +15,7 @@ import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { card, paint, rng, surface } from "../textures";
 import { GROUND, TEMPLE, type TempleHill } from "../templeHill";
 import { mat } from "./materials";
+import { cutout, Form, organic } from "./visuals";
 
 /** Temple Hill species (docs/blocks/02_TEMPLE_HILL_PROPOSAL.md). */
 export function createTempleLife(ctx: GameContext, shadows: ShadowGenerator): LifeForm[] {
@@ -196,7 +197,8 @@ class ScrollCaps implements LifeForm {
 
   constructor(ctx: GameContext) {
     const scene = ctx.scene;
-    const capMat = mat(scene, "scrollCap", 0.86, 0.82, 0.7);
+    // Scroll Cap photo: cream-to-tan shelf brackets in overlapping tiers, frilled and banded.
+    const capMat = organic(scene, "scroll-cap-bracket", "#d2bf98", "bracket");
     capMat.emissiveColor = new Color3(0.06, 0.055, 0.045);
     const wallZ = TEMPLE.hall.z0 + 0.4 + 0.9;
     const fl = TEMPLE.hall.floor;
@@ -213,10 +215,10 @@ class ScrollCaps implements LifeForm {
     const r = rng(77);
     for (const [x, y, z, facing, shelf] of spots) {
       const caps: Mesh[] = [];
-      for (let k = 0; k < 6; k++) {
-        const cap = MeshBuilder.CreateSphere("scrollCapLayer", { diameter: 0.55 - k * 0.05 + r() * 0.1, segments: 4, slice: 0.5 }, scene);
-        cap.scaling.set(1, 0.18, 0.7);
-        cap.position.set((r() - 0.5) * 0.15, k * 0.09, 0.12);
+      for (let k = 0; k < 9; k++) {
+        const cap = MeshBuilder.CreateSphere("scrollCapLayer", { diameter: 0.5 - k * 0.03 + r() * 0.14, segments: 6, slice: 0.5 }, scene);
+        cap.scaling.set(1, 0.14, 0.75);
+        cap.position.set((r() - 0.5) * 0.35, k * 0.075, 0.12 + (r() - 0.5) * 0.04);
         cap.rotation.y = facing;
         cap.bakeCurrentTransformIntoVertices();
         caps.push(cap);
@@ -284,8 +286,9 @@ class CenserPuffballs implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const skin = mat(scene, "puffballSkin", 0.62, 0.5, 0.3);
-    skin.emissiveColor = new Color3(0.06, 0.04, 0.01);
+    // Censer Puffball photo: ochre, cracked and warty skins in crowded clusters of many sizes.
+    const skin = organic(scene, "censer-puffball-skin", "#8f7248", "warty");
+    skin.emissiveColor = new Color3(0.03, 0.02, 0.005);
     const sporeMat = new StandardMaterial("sporeCloud", scene);
     sporeMat.diffuseColor = new Color3(0.8, 0.62, 0.28);
     sporeMat.emissiveColor = new Color3(0.42, 0.32, 0.12);
@@ -296,11 +299,12 @@ class CenserPuffballs implements LifeForm {
     PUFF_SPOTS.forEach(([x, z], i) => {
       const parts: Mesh[] = [];
       // Each spot is a little cluster: one big ball and a couple of small ones.
-      for (let k = 0; k < 3; k++) {
-        const d = k === 0 ? 0.9 : 0.35 + r() * 0.2;
-        const ball = MeshBuilder.CreateSphere("puffball", { diameter: d, segments: k === 0 ? 7 : 4 }, scene);
-        ball.scaling.y = 0.85;
-        ball.position.set(k === 0 ? 0 : (r() - 0.5) * 1.1, d * 0.38, k === 0 ? 0 : (r() - 0.5) * 1.1);
+      for (let k = 0; k < 7; k++) {
+        const d = k === 0 ? 0.9 : k < 3 ? 0.4 + r() * 0.2 : 0.14 + r() * 0.14;
+        const ball = MeshBuilder.CreateSphere("puffball", { diameter: d, segments: k === 0 ? 9 : 5 }, scene);
+        ball.scaling.y = 0.82;
+        const a = r() * Math.PI * 2, dist = k === 0 ? 0 : 0.45 + r() * 0.35;
+        ball.position.set(Math.cos(a) * dist, d * 0.36, Math.sin(a) * dist);
         ball.bakeCurrentTransformIntoVertices();
         parts.push(ball);
       }
@@ -445,36 +449,46 @@ class GildedCarp implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const gold = mat(scene, "carpGold", 0.85, 0.6, 0.2, 0.7);
+    // Gilded Carp photo: a long, heavy golden carp with large rimmed scales, barbels and amber fins.
+    const gold = organic(scene, "gilded-carp-scales", "#c79a3a", "scales");
+    gold.specularColor = new Color3(0.7, 0.55, 0.25);
     gold.specularPower = 40;
     gold.emissiveColor = new Color3(0.08, 0.05, 0.01);
-    const fin = mat(scene, "carpFin", 0.9, 0.55, 0.3);
-    fin.alpha = 0.85;
-    fin.backFaceCulling = false;
+    const fin = cutout(scene, "gilded-carp-fin", 128, (c, s) => {
+      c.fillStyle = "rgba(214,150,62,.9)";
+      c.beginPath(); c.moveTo(4, s - 4); c.quadraticCurveTo(s * .3, 4, s - 4, s * .35); c.lineTo(s - 4, s - 4); c.closePath(); c.fill();
+      c.strokeStyle = "rgba(120,70,20,.6)"; c.lineWidth = 1.5;
+      for (let i = 0; i < 9; i++) { c.beginPath(); c.moveTo(8 + i * 12, s - 4); c.lineTo(10 + i * 13, s * .2 + i * 4); c.stroke(); }
+    });
+    const tailMat = cutout(scene, "gilded-carp-tail", 128, (c, s) => {
+      c.fillStyle = "rgba(220,150,60,.9)";
+      c.beginPath(); c.moveTo(s / 2, s - 6); c.quadraticCurveTo(s * .1, s * .5, 4, 4); c.quadraticCurveTo(s / 2, s * .35, s - 4, 4); c.quadraticCurveTo(s * .9, s * .5, s / 2, s - 6); c.fill();
+      c.strokeStyle = "rgba(120,70,20,.6)"; c.lineWidth = 1.5;
+      for (let i = 0; i < 9; i++) { c.beginPath(); c.moveTo(s / 2, s - 8); c.lineTo(6 + i * 14, 10); c.stroke(); }
+    });
+    const dark = mat(scene, "carpEye", 0.05, 0.04, 0.02, 0.8);
     this.node = new TransformNode("gildedCarp", scene);
-    const body = MeshBuilder.CreateSphere("carpBody", { diameter: 1, segments: 10 }, scene);
-    body.scaling.set(0.42, 0.34, 1.3);
-    body.material = gold;
-    const head = MeshBuilder.CreateSphere("carpHead", { diameter: 0.42, segments: 8 }, scene);
-    head.scaling.z = 1.3;
-    head.position.set(0, 0.02, 0.62);
-    head.material = gold;
-    for (let i = 0; i < 4; i++) {
-      const plate = MeshBuilder.CreateBox(`carpPlate${i}`, { width: 0.36, height: 0.05, depth: 0.26 }, scene);
-      plate.position.set(0, 0.16 - Math.abs(i - 1.5) * 0.02, -0.35 + i * 0.22);
-      plate.rotation.x = -0.12;
-      plate.material = gold;
-      this.parts.push(plate);
+    const f = new Form(scene, "carpBody");
+    f.ellipsoid([0, 0, 0], [0.44, 0.38, 1.35], gold, 12);
+    f.ellipsoid([0, 0.02, 0.6], [0.36, 0.32, 0.5], gold, 10);
+    f.taper([[0, 0, -0.55], [0, 0.01, -0.78]], 0.15, 0.06, gold, 8);
+    for (const side of [-1, 1]) {
+      f.ellipsoid([side * 0.12, 0.06, 0.74], [0.05, 0.05, 0.04], dark, 5);
+      f.taper([[side * 0.05, -0.08, 0.84], [side * 0.08, -0.14, 0.88], [side * 0.1, -0.2, 0.84]], 0.01, 0.004, gold, 4);
+      f.plane([side * 0.24, -0.12, 0.38], [0.24, 0.18], [0.4, side * 0.6, side * 0.9], fin);
+      f.plane([side * 0.12, -0.2, -0.15], [0.2, 0.14], [0.3, side * 0.3, side * 1.2], fin);
     }
-    this.tail = MeshBuilder.CreatePlane("carpTail", { width: 0.55, height: 0.5 }, scene);
+    const body = Mesh.MergeMeshes(f.finish(), true, true, undefined, false, true)!;
+    body.name = "carpBody";
+    this.tail = MeshBuilder.CreatePlane("carpTail", { width: 0.6, height: 0.55, sideOrientation: Mesh.DOUBLESIDE }, scene);
     this.tail.rotation.y = Math.PI / 2;
-    this.tail.position.set(0, 0, -0.85);
-    this.tail.material = fin;
-    const dorsal = MeshBuilder.CreatePlane("carpDorsal", { width: 0.5, height: 0.22 }, scene);
+    this.tail.position.set(0, 0, -1.02);
+    this.tail.material = tailMat;
+    const dorsal = MeshBuilder.CreatePlane("carpDorsal", { width: 0.6, height: 0.24, sideOrientation: Mesh.DOUBLESIDE }, scene);
     dorsal.rotation.y = Math.PI / 2;
-    dorsal.position.set(0, 0.22, -0.1);
+    dorsal.position.set(0, 0.26, -0.1);
     dorsal.material = fin;
-    this.parts.push(body, head, this.tail, dorsal);
+    this.parts.push(body, this.tail, dorsal);
     for (const p of this.parts) {
       p.parent = this.node;
       shadows.addShadowCaster(p);
@@ -743,47 +757,39 @@ class MossTanuki implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const fur = mat(scene, "tanukiFur", 0.42, 0.34, 0.26);
-    const mask = mat(scene, "tanukiMask", 0.1, 0.09, 0.08);
-    const moss = mat(scene, "tanukiMoss", 0.3, 0.48, 0.18);
-    const pale = mat(scene, "tanukiPale", 0.78, 0.72, 0.6);
+    // Moss Tanuki photo: a stocky raccoon dog in grizzled brown fur, a dark eye mask between pale
+    // cheeks, small dark rounded ears, dark legs, a thick tail, and a living cushion of moss on its back.
+    const fur = organic(scene, "moss-tanuki-fur", "#7a6146", "fur");
+    const mask = organic(scene, "moss-tanuki-mask", "#2a2420", "fur");
+    const moss = organic(scene, "moss-tanuki-moss", "#56702e", "moss");
+    const pale = organic(scene, "moss-tanuki-cheeks", "#c9b897", "fur");
     this.node = new TransformNode("mossTanuki", scene);
     this.body = new TransformNode("mossTanukiBody", scene);
     this.body.parent = this.node;
-    const parts: Mesh[] = [];
-    const add = (mesh: Mesh, material: StandardMaterial) => {
-      mesh.material = material;
-      mesh.parent = this.body;
-      shadows.addShadowCaster(mesh);
-      parts.push(mesh);
-      return mesh;
-    };
-    const torso = add(MeshBuilder.CreateSphere("tanukiTorso", { diameter: 1, segments: 10 }, scene), fur);
-    torso.scaling.set(0.62, 0.52, 0.85);
-    torso.position.y = 0.38;
-    const back = add(MeshBuilder.CreateSphere("tanukiMossBack", { diameter: 1, segments: 8, slice: 0.5 }, scene), moss);
-    back.scaling.set(0.66, 0.5, 0.86);
-    back.position.y = 0.44;
-    const head = add(MeshBuilder.CreateSphere("tanukiHead", { diameter: 0.42, segments: 8 }, scene), pale);
-    head.position.set(0, 0.52, 0.48);
-    const band = add(MeshBuilder.CreateSphere("tanukiMaskBand", { diameter: 0.43, segments: 8, slice: 0.5 }, scene), mask);
-    band.scaling.set(1.02, 0.35, 1.02);
-    band.rotation.x = Math.PI / 2;
-    band.position.set(0, 0.54, 0.5);
-    const snout = add(MeshBuilder.CreateSphere("tanukiSnout", { diameter: 0.16, segments: 6 }, scene), mask);
-    snout.position.set(0, 0.47, 0.7);
+    const f = new Form(scene, "mossTanuki");
+    f.ellipsoid([0, 0.33, 0], [0.62, 0.5, 0.9], fur, 12);
+    f.ellipsoid([0, 0.26, 0.32], [0.5, 0.42, 0.42], fur, 10);
+    // Moss cushion over the back and haunches, with a few lumps.
+    f.ellipsoid([0, 0.47, -0.08], [0.6, 0.2, 0.74], moss, 10);
+    for (const [x, z] of [[-0.16, -0.25], [0.14, 0.05]] as const) f.ellipsoid([x, 0.54, z], [0.22, 0.08, 0.24], moss, 6);
+    // Head: round, pale cheeks, dark mask, short dark muzzle and nose.
+    f.ellipsoid([0, 0.42, 0.52], [0.4, 0.36, 0.36], fur, 10);
     for (const side of [-1, 1]) {
-      const ear = add(MeshBuilder.CreateCylinder(`tanukiEar${side}`, { diameterTop: 0, diameterBottom: 0.13, height: 0.13, tessellation: 5 }, scene), mask);
-      ear.position.set(side * 0.13, 0.73, 0.44);
-      for (const z of [-0.25, 0.25]) {
-        const leg = add(MeshBuilder.CreateCylinder(`tanukiLeg${side}${z}`, { diameter: 0.1, height: 0.22, tessellation: 5 }, scene), mask);
-        leg.position.set(side * 0.2, 0.1, z);
+      f.ellipsoid([side * 0.13, 0.36, 0.62], [0.2, 0.18, 0.18], pale, 8);
+      f.ellipsoid([side * 0.1, 0.44, 0.63], [0.13, 0.08, 0.08], mask, 6);
+      f.ellipsoid([side * 0.13, 0.62, 0.48], [0.12, 0.12, 0.06], mask, 6);
+      for (const z of [-0.28, 0.3]) {
+        f.taper([[side * 0.2, 0.22, z], [side * 0.21, 0.08, z + 0.02], [side * 0.21, 0.02, z + 0.04]], 0.07, 0.055, mask, 6);
+        f.ellipsoid([side * 0.21, 0.02, z + 0.08], [0.1, 0.05, 0.12], mask, 5);
       }
     }
-    const tail = add(MeshBuilder.CreateSphere("tanukiTail", { diameter: 0.3, segments: 6 }, scene), fur);
-    tail.scaling.z = 1.8;
-    tail.position.set(0, 0.32, -0.55);
-    tail.rotation.x = -0.4;
+    f.ellipsoid([0, 0.36, 0.72], [0.18, 0.14, 0.16], pale, 8);
+    f.ellipsoid([0, 0.38, 0.8], [0.07, 0.05, 0.05], mask, 5);
+    // Thick tail with darker tip.
+    f.taper([[0, 0.3, -0.42], [0.08, 0.24, -0.62], [0.16, 0.16, -0.78]], 0.13, 0.09, fur, 8);
+    f.ellipsoid([0.18, 0.15, -0.82], [0.17, 0.15, 0.2], mask, 6);
+    const parts = f.finish(this.body);
+    for (const mesh of parts) shadows.addShadowCaster(mesh);
 
     this.node.position.copyFrom(TEMPLE.gateRoof);
     this.node.rotation.y = Math.PI / 2;
@@ -915,10 +921,22 @@ export function createTempleDiscoveries(ctx: GameContext, world: TempleHill): Sc
   markMat.specularColor = new Color3(0.3, 0.3, 0.3);
   markMat.backFaceCulling = false;
   plate.material = markMat;
-  const stand = MeshBuilder.CreateBox("predecessorMarkStand", { width: 1, height: 0.8, depth: 0.12 }, scene);
-  stand.position.copyFrom(world.pagodaTop).addInPlaceFromFloats(0, 0.4, -0.36);
-  stand.rotation.x = -0.25;
-  stand.material = scene.getMaterialByName("templeBronze");
+  // Origin Mark photo: the mark is cut into the bronze base of the spire, an onion-shaped
+  // finial gone green, lichen in its lower rings.
+  const bronze = organic(scene, "origin-mark-bronze", "#4e5c46", "bronze");
+  bronze.specularColor = new Color3(0.1, 0.1, 0.08);
+  const df = new Form(scene, "predecessorMarkStand");
+  df.lathe([[0.6, 0], [0.62, 0.08], [0.5, 0.12], [0.5, 0.2], [0.58, 0.26], [0.6, 0.45], [0.5, 0.68], [0.3, 0.85], [0.14, 0.95], [0.1, 1.05]], [0, 0, 0], bronze, 16);
+  for (const yy of [0.1, 0.26]) {
+    const ring = MeshBuilder.CreateTorus("predecessorMarkStand", { diameter: 1.08 + yy * 0.3, thickness: 0.06, tessellation: 20 }, scene);
+    ring.position.y = yy; df.add(ring, bronze);
+  }
+  const stand = df.finish()[0];
+  stand.name = "predecessorMarkStand";
+  stand.position.copyFrom(world.pagodaTop);
+  plate.position.copyFrom(world.pagodaTop).addInPlaceFromFloats(0, 0.5, -0.6);
+  plate.rotation.x = -0.35;
+  plate.scaling.set(0.75, 0.75, 1);
 
   const wish = world.wishWall;
   return [

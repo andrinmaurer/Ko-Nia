@@ -2,6 +2,7 @@ import { Color3, Mesh, MeshBuilder, Scene, ShadowGenerator, StandardMaterial, Ve
 import { Kit, scatterCards, stairs, stoneLantern } from "./kit";
 import { buildRelayModel } from "./relay";
 import { card, paint, rng } from "./textures";
+import { Form, organic, weatheredStone } from "./life/visuals";
 
 /**
  * "Temple Hill", the second block (docs/blocks/02_TEMPLE_HILL_PROPOSAL.md):
@@ -89,11 +90,11 @@ export function buildTempleHill(scene: Scene, shadows: ShadowGenerator): TempleH
     darkWood: darkWood(scene),
     metal: kit.flat("metal", 0.35, 0.37, 0.4, 0.3),
     alien: kit.flat("alien", 0.12, 0.13, 0.16, 0.6),
-    lanternLight: kit.flat("stoneLanternLight", 0.9, 0.62, 0.3),
+    // Fire boxes stand empty and dark (stone lantern photo).
+    lanternLight: kit.flat("stoneLanternLight", 0.08, 0.07, 0.06),
     water: scene.getMaterialByName("water") as StandardMaterial,
     foliage: card(scene, "foliage"),
   };
-  m.lanternLight.emissiveColor.set(0.18, 0.08, 0.02);
 
   buildGround(kit, scene, m);
   buildWalls(kit, m);
@@ -301,34 +302,42 @@ function buildCourtyard(kit: Kit, scene: Scene, m: Mats, r: () => number): Mesh[
   return lanterns;
 }
 
-/** A stone lantern as one scannable mesh, plus its glowing window. */
-function courtyardLantern(scene: Scene, kit: Kit, m: Mats, x: number, z: number): Mesh {
-  const parts: Mesh[] = [];
-  const add = (mesh: Mesh) => {
-    mesh.bakeCurrentTransformIntoVertices();
-    parts.push(mesh);
-  };
-  const box = (w: number, h: number, y: number) => {
-    const b = MeshBuilder.CreateBox("lanternPart", { width: w, height: h, depth: w }, scene);
-    b.position.set(x, y + h / 2, z);
-    add(b);
-  };
-  box(0.9, 0.3, GROUND);
-  box(0.35, 1.1, GROUND + 0.3);
-  box(0.8, 0.18, GROUND + 1.4);
-  const cap = MeshBuilder.CreateCylinder("lanternCap", { diameterTop: 0.12, diameterBottom: 1.15, height: 0.45, tessellation: 6 }, scene);
-  cap.position.set(x, GROUND + 2.33, z);
-  add(cap);
-  // Window box: four corner posts around the light.
-  for (const [dx, dz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
-    const post = MeshBuilder.CreateBox("lanternPost", { width: 0.1, height: 0.52, depth: 0.1 }, scene);
-    post.position.set(x + dx * 0.27, GROUND + 1.84, z + dz * 0.27);
-    add(post);
+/**
+ * A stone lantern (tōrō) as one scannable mesh, after its Logbook photograph: hexagonal plinth, round
+ * post, a moss-capped platform, a fire box with dark open windows, a wide roof with upturned corners
+ * and a jewel finial. Unlit: nothing in the temple carries a flame any more.
+ */
+function courtyardLantern(scene: Scene, kit: Kit, _m: Mats, x: number, z: number): Mesh {
+  const stone = weatheredStone(scene);
+  const f = new Form(scene, "stoneLantern");
+  const y = GROUND;
+  f.lathe([[.55, 0], [.55, .14], [.42, .2], [.42, .3], [.2, .36]], [x, y, z], stone, 6);
+  const post = MeshBuilder.CreateCylinder("stoneLantern", { diameterTop: .28, diameterBottom: .34, height: .95, tessellation: 10 }, scene);
+  post.position.set(x, y + .82, z); f.add(post, stone);
+  f.ellipsoid([x, y + .88, z], [.38, .1, .38], stone, 8);
+  f.lathe([[.18, 0], [.48, .08], [.48, .2], [.3, .24]], [x, y + 1.28, z], stone, 6);
+  // Fire box: hexagonal, with dark window recesses on two faces.
+  const box = MeshBuilder.CreateCylinder("stoneLantern", { diameter: .62, height: .5, tessellation: 6 }, scene);
+  box.position.set(x, y + 1.77, z); f.add(box, stone);
+  const hollow = kit.flat("lanternHollow", 0.06, 0.055, 0.05);
+  for (const a of [0, Math.PI]) {
+    const w = MeshBuilder.CreateBox("stoneLantern", { width: .04, height: .3, depth: .24 }, scene);
+    w.position.set(x + Math.cos(a) * .27, y + 1.78, z + Math.sin(a) * .27); f.add(w, hollow);
   }
-  const lantern = Mesh.MergeMeshes(parts, true)!;
+  // Roof: a low hexagonal cone with each corner curling up.
+  f.lathe([[.06, .42], [.3, .3], [.62, .1], [.7, 0], [.66, -.04], [.3, .06], [.06, .1]], [x, y + 2.02, z], stone, 6);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    f.taper([[x + Math.cos(a) * .6, y + 2.06, z + Math.sin(a) * .6], [x + Math.cos(a) * .72, y + 2.14, z + Math.sin(a) * .72], [x + Math.cos(a) * .76, y + 2.24, z + Math.sin(a) * .76]], .05, .025, stone, 5);
+  }
+  f.ellipsoid([x, y + 2.52, z], [.2, .14, .2], stone, 8);
+  f.lathe([[0, .3], [.06, .22], [.1, .12], [.06, .03], [.04, 0]], [x, y + 2.56, z], stone, 8);
+  const lantern = Mesh.MergeMeshes(f.finish(), true, true, undefined, false, true)!;
   lantern.name = "stoneLantern";
-  kit.add(lantern, m.stone, { keep: true, tile: 1 });
-  kit.box("lanternLight", x - 0.22, x + 0.22, GROUND + 1.6, GROUND + 2.08, z - 0.22, z + 0.22, m.lanternLight, { collide: false, cast: false });
+  // kit.add sets the material: keep the multi-material by re-applying it afterwards.
+  const multi = lantern.material;
+  kit.add(lantern, stone, { keep: true });
+  lantern.material = multi;
   return lantern;
 }
 
@@ -346,20 +355,30 @@ function buildBellTower(kit: Kit, scene: Scene, m: Mats): Mesh {
   kit.box("bellBeam", x - 3.3, x - 2.7, top + 6.5, top + 7, z - 3.3, z + 3.3, m.red);
   // The tower roof slid off to the east and lies against the broken pillars.
   kit.slope("bellRoofFallen", new Vector3(x + 6.5, GROUND + 0.3, z), new Vector3(x + 1.5, top + 4.4, z), 7.5, 0.4, m.roof, { collide: false });
-  // The bell lies on its side, mouth to the south.
-  const bell = MeshBuilder.CreateCylinder("templeBell", { diameterTop: 1.5, diameterBottom: 2.2, height: 2.8, tessellation: 18 }, scene);
+  // The bell lies on its side, mouth to the south (Temple Bell photo): a cast bronze body gone to
+  // verdigris, raised bands, a grid of studs on the shoulder, a thick lip and the hanging loop.
+  const bronze = organic(scene, "temple-bell-bronze", "#4a5847", "bronze");
+  bronze.specularColor = new Color3(0.1, 0.11, 0.09);
+  const f = new Form(scene, "templeBell");
+  const H = 2.8;
+  f.lathe([[0, H / 2 + .02], [.62, H / 2], [.75, H / 2 - .25], [.8, .2], [.92, -H / 2 + .35], [1.1, -H / 2 + .05], [1.13, -H / 2], [1.0, -H / 2 + .04], [.9, -H / 2 + .2]], [0, 0, 0], bronze, 20);
+  for (const yy of [.45, -.15, -.95]) {
+    const band = MeshBuilder.CreateTorus("templeBell", { diameter: (yy > 0 ? .78 : yy > -.5 ? .84 : 1.0) * 2, thickness: .07, tessellation: 24 }, scene);
+    band.position.y = yy; f.add(band, bronze);
+  }
+  // Studs (chi) in four panels around the shoulder.
+  for (let q = 0; q < 4; q++) for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+    const a = q * Math.PI / 2 + (col - 1) * .2, yy = .95 - row * .17, rad = .75 + row * .01;
+    f.ellipsoid([Math.cos(a) * rad, yy, Math.sin(a) * rad], [.09, .09, .09], bronze, 5);
+  }
+  const loop = MeshBuilder.CreateTorus("templeBell", { diameter: .55, thickness: .16, tessellation: 12 }, scene);
+  loop.position.y = H / 2 + .2; loop.rotation.x = Math.PI / 2; f.add(loop, bronze);
+  const bell = f.finish()[0];
   bell.rotation.x = Math.PI / 2 - 0.12;
   bell.position.set(x - 0.5, top + 1.05, z - 0.4);
   bell.bakeCurrentTransformIntoVertices();
-  kit.add(bell, m.bronze, { keep: true });
-  const lip = MeshBuilder.CreateTorus("bellLip", { diameter: 2.2, thickness: 0.18, tessellation: 18 }, scene);
-  lip.rotation.x = Math.PI / 2 - 0.12;
-  lip.position.set(x - 0.5, top + 1.05 - Math.sin(0.12) * 1.4, z - 0.4 - Math.cos(0.12) * 1.4);
-  kit.add(lip, m.bronze, { collide: false });
-  const crown = MeshBuilder.CreateTorus("bellLoop", { diameter: 0.6, thickness: 0.16, tessellation: 12 }, scene);
-  crown.rotation.y = Math.PI / 2;
-  crown.position.set(x - 0.5, top + 1.2, z + 1.2);
-  kit.add(crown, m.bronze, { collide: false });
+  bell.name = "templeBell";
+  kit.add(bell, bronze, { keep: true });
   return bell;
 }
 
@@ -505,24 +524,67 @@ function buildHall(kit: Kit, scene: Scene, m: Mats): { offeringBox: Mesh; scroll
   kit.slope("floorBeam", new Vector3(182.5, fl + 0.3, -4.5), new Vector3(187.5, fl + 0.3, -2), 0.5, 0.5, m.wood);
   kit.slope("floorBeam", new Vector3(194, fl + 0.3, 3.5), new Vector3(196.8, fl + 0.3, -0.5), 0.5, 0.5, m.wood);
 
-  // Scroll shelf along the south wall: scannable, with Scroll Caps on it.
-  const shelf = MeshBuilder.CreateBox("scrollShelf", { width: 6, height: 2.2, depth: 0.9 }, scene);
-  shelf.position.set(184.8, fl + 1.1, h.z0 + t + 0.45);
-  kit.add(shelf, m.wood, { keep: true });
-  const scroll = kit.flat("scrollPaper", 0.78, 0.72, 0.58);
+  // Scroll shelf along the south wall: scannable, with Scroll Caps on it (Scroll Shelf photo): a dark
+  // timber case of three shelves and four bays, packed with tied scrolls whose ends face the hall.
+  const caseWood = organic(scene, "scroll-shelf-timber", "#4b3a2b", "bark");
+  const paper = organic(scene, "scroll-paper", "#b9a47a");
+  const cord = organic(scene, "scroll-cord", "#6a4a2c");
+  // Built around the shelf's centre, then placed against the wall.
+  const sf = new Form(scene, "scrollShelf");
+  const front = 0.42;
+  sf.box([0, -1.04, 0], [6, 0.12, 0.9], caseWood);
+  sf.box([0, 1.05, 0], [6.2, 0.14, 0.95], caseWood);
+  sf.box([0, 0, -0.42], [6, 2.2, 0.06], caseWood);
+  for (const yy of [-0.35, 0.35]) sf.box([0, yy, 0], [6, 0.07, 0.88], caseWood);
+  for (let i = 0; i <= 4; i++) sf.box([-3 + i * 1.5, 0, 0.02], [0.12, 2.2, 0.9], caseWood);
   const sr = rng(331);
-  for (let i = 0; i < 30; i++) {
-    const roll = MeshBuilder.CreateCylinder("scroll", { diameter: 0.1 + sr() * 0.05, height: 0.6, tessellation: 6 }, scene);
-    roll.rotation.z = Math.PI / 2;
-    roll.position.set(182.3 + sr() * 5, fl + 0.45 + Math.floor(i / 10) * 0.7, h.z0 + t + 0.15 + sr() * 0.3);
-    kit.add(roll, scroll, { collide: false, cast: false });
+  for (let shelfRow = 0; shelfRow < 3; shelfRow++) {
+    const base = -0.98 + shelfRow * 0.7;
+    for (let bay = 0; bay < 4; bay++) {
+      // Layers of scrolls stacked like logs, ends towards the hall.
+      for (let layer = 0; layer < 3; layer++) for (let k = 0; k < 9 - layer; k++) {
+        if (sr() < 0.12) continue;
+        const d = 0.12 + sr() * 0.03;
+        const roll = MeshBuilder.CreateCylinder("scrollShelf", { diameter: d, height: 0.62 + sr() * 0.18, tessellation: 7 }, scene);
+        roll.rotation.x = Math.PI / 2;
+        roll.position.set(-3 + bay * 1.5 + 0.18 + k * 0.14 + layer * 0.07, base + 0.07 + layer * 0.12, front - 0.4 + sr() * 0.06);
+        sf.add(roll, sr() < 0.25 ? cord : paper);
+      }
+    }
   }
+  const shelf = Mesh.MergeMeshes(sf.finish(), true, true, undefined, false, true)!;
+  shelf.name = "scrollShelf";
+  const shelfMats = shelf.material;
+  shelf.position.set(184.8, fl + 1.1, h.z0 + t + 0.45);
+  kit.add(shelf, caseWood, { keep: true });
+  shelf.material = shelfMats;
 
-  // Offering box at the top of the front steps.
+  // Offering box at the top of the front steps (Offering Box photo): a heavy timber chest with a
+  // slatted top, iron-banded corners and a round crest on the front.
   const ob = TEMPLE.offeringBox;
-  const offeringBox = MeshBuilder.CreateBox("templeOfferingBox", { width: 0.8, height: 0.9, depth: 2 }, scene);
-  offeringBox.position.set(ob.x, ob.y + 0.45, ob.z);
-  kit.add(offeringBox, m.wood, { keep: true });
+  const boxWood = organic(scene, "offering-box-timber", "#6a5640", "bark");
+  const iron = organic(scene, "offering-box-iron", "#3d3b36", "rusted");
+  const of = new Form(scene, "templeOfferingBox");
+  of.box([0, 0.38, 0], [0.8, 0.76, 2], boxWood);
+  of.box([0, 0.8, 0], [0.9, 0.08, 2.1], boxWood);
+  for (let i = 0; i < 11; i++) {
+    // Louvred slats: coins once slid between them.
+    const slat = of.box([0, 0.87, -0.9 + i * 0.18], [0.84, 0.05, 0.1], boxWood);
+    slat.rotation.x = 0.35;
+  }
+  for (const dz of [-1, 1]) for (const dx of [-1, 1]) of.box([dx * 0.4, 0.4, dz * 0.98], [0.06, 0.82, 0.12], iron);
+  const crest = MeshBuilder.CreateCylinder("templeOfferingBox", { diameter: 0.42, height: 0.04, tessellation: 16 }, scene);
+  crest.rotation.z = Math.PI / 2; crest.position.set(-0.42, 0.42, 0); of.add(crest, iron);
+  for (let i = 0; i < 8; i++) {
+    const petal = of.ellipsoid([-0.445, 0.42 + Math.cos(i * Math.PI / 4) * 0.11, Math.sin(i * Math.PI / 4) * 0.11], [0.02, 0.09, 0.09], iron, 5);
+    petal.rotation.x = i * Math.PI / 4;
+  }
+  const offeringBox = Mesh.MergeMeshes(of.finish(), true, true, undefined, false, true)!;
+  offeringBox.name = "templeOfferingBox";
+  const offeringMats = offeringBox.material;
+  offeringBox.position.set(ob.x, ob.y, ob.z);
+  kit.add(offeringBox, boxWood, { keep: true });
+  offeringBox.material = offeringMats;
 
   // The Wish Wall: thousands of small wooden plaques on the north end wall.
   const wish = MeshBuilder.CreatePlane("wishWall", { width: 13, height: 4.4 }, scene);

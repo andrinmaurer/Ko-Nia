@@ -5,11 +5,12 @@ import {
   Scene,
   ShadowGenerator,
   StandardMaterial,
+  TransformNode,
   Vector3,
 } from "../babylon";
 import { buildDressing } from "./dressing";
 import { dressArtifacts } from "./artifacts";
-import { guardianVisual } from "./life/visuals";
+import { guardianVisual, organic, weatheredStone } from "./life/visuals";
 import { buildRelayModel } from "./relay";
 import { card, surface, type Surface } from "./textures";
 import { worldUV } from "./uv";
@@ -216,33 +217,59 @@ function buildOverpass(scene: Scene, block: BlockFn, solid: SolidFn, mat: Materi
 }
 
 function buildShrine(scene: Scene, block: BlockFn, solid: SolidFn, mat: Materials): void {
-  // Leaning torii gate across the street.
-  const torii = (mesh: Mesh) => solid(mesh, mat.torii);
+  // Leaning torii gate across the street (Red Gate sheet): weathered vermilion lacquer worn to grey timber,
+  // black-capped tapering pillars, a through-beam (nuki) projecting past them, a centre strut and a
+  // double top beam (shimaki under kasagi) whose ends sweep upwards.
   const tiltZ = 0.06;
+  const lean = new TransformNode("toriiLean", scene);
+  lean.position.set(44, 0, 0);
+  lean.rotation.x = tiltZ;
+  const part = (mesh: Mesh, material = mat.torii) => { mesh.parent = lean; return solid(mesh, material); };
   for (const z of [-2.6, 2.6]) {
-    const pillar = torii(MeshBuilder.CreateCylinder(`toriiPillar${z}`, { diameter: 0.5, height: 5 }, scene));
-    pillar.position.set(44, 2.5, z);
-    pillar.rotation.x = tiltZ;
+    const pillar = part(MeshBuilder.CreateCylinder(`toriiPillar${z}`, { diameterTop: 0.42, diameterBottom: 0.54, height: 4.75, tessellation: 14 }, scene));
+    pillar.position.set(0, 2.375, z);
+    const cap = part(MeshBuilder.CreateCylinder(`toriiBase${z}`, { diameter: 0.6, height: 0.55, tessellation: 14 }, scene), mat.toriiBase);
+    cap.position.set(0, 0.27, z);
+    const collar = part(MeshBuilder.CreateCylinder(`toriiCollar${z}`, { diameter: 0.5, height: 0.14, tessellation: 14 }, scene), mat.toriiBase);
+    collar.position.set(0, 4.1, z);
   }
-  const kasagi = torii(MeshBuilder.CreateBox("toriiKasagi", { width: 0.6, height: 0.4, depth: 7.5 }, scene));
-  kasagi.position.set(44, 5.1, 0.3);
-  kasagi.rotation.x = tiltZ;
-  const nuki = torii(MeshBuilder.CreateBox("toriiNuki", { width: 0.35, height: 0.3, depth: 6.2 }, scene));
-  nuki.position.set(44, 4.1, 0.25);
-  nuki.rotation.x = tiltZ;
-  for(const side of [-1,1]) {
-    const tip=torii(MeshBuilder.CreateBox(`toriiTip${side}`,{width:.6,height:.35,depth:1.1},scene));
-    tip.position.set(44,5.3,side*3.75+.3);tip.rotation.x=side*.22;
+  const nuki = part(MeshBuilder.CreateBox("toriiNuki", { width: 0.3, height: 0.32, depth: 6.9 }, scene));
+  nuki.position.set(0, 3.9, 0);
+  const strut = part(MeshBuilder.CreateBox("toriiGakuzuka", { width: 0.28, height: 0.62, depth: 0.36 }, scene));
+  strut.position.set(0, 4.37, 0);
+  const shimaki = part(MeshBuilder.CreateBox("toriiShimaki", { width: 0.46, height: 0.3, depth: 7.2 }, scene));
+  shimaki.position.set(0, 4.83, 0);
+  // Kasagi: short segments along a curve that lifts towards both ends, capped in dark copper.
+  const curve = (zz: number) => 5.13 + Math.pow(Math.abs(zz) / 4.1, 2.6) * 0.5;
+  const N = 12;
+  const segs: Mesh[] = [], caps: Mesh[] = [];
+  for (let i = 0; i < N; i++) {
+    const z0 = -4.1 + (8.2 * i) / N, z1 = -4.1 + (8.2 * (i + 1)) / N;
+    const len = Math.hypot(z1 - z0, curve(z1) - curve(z0));
+    const seg = MeshBuilder.CreateBox("toriiKasagi", { width: 0.62, height: 0.36, depth: len + 0.04 }, scene);
+    seg.position.set(0, (curve(z0) + curve(z1)) / 2, (z0 + z1) / 2);
+    seg.rotation.x = -Math.atan2(curve(z1) - curve(z0), z1 - z0);
+    const top = MeshBuilder.CreateBox("toriiKasagiCap", { width: 0.7, height: 0.08, depth: len + 0.04 }, scene);
+    top.position.set(0, seg.position.y + 0.21, seg.position.z);
+    top.rotation.x = seg.rotation.x;
+    segs.push(seg); caps.push(top);
   }
-
+  // One mesh each for the beam and its cap (built in the gate's frame, then hung on it).
+  const kasagi = Mesh.MergeMeshes(segs, true)!;
+  kasagi.name = "toriiKasagi";
+  part(kasagi);
+  const kasagiCap = Mesh.MergeMeshes(caps, true)!;
+  kasagiCap.name = "toriiKasagiCap";
+  part(kasagiCap, mat.toriiBase);
 
   // Guardian statues.
   for (const z of [-3.5, 3.5]) {
     block(`statueBase${z}`, 47, 48, z - 0.5, z + 0.5, 0.8, mat.stone);
-    const statue = guardianVisual(scene, `statue${z}`, mat.stone, z < 0);
+    const granite = weatheredStone(scene);
+    const statue = guardianVisual(scene, `statue${z}`, granite, z < 0);
     statue.position.set(47.5,.8,z);
     statue.rotation.y=-Math.PI/2;
-    solid(statue, mat.stone);
+    solid(statue, granite);
   }
 
   // Shrine building with a pitched roof.
@@ -341,9 +368,9 @@ function createMaterials(scene: Scene) {
   water.specularPower = 128;
   water.alpha = 0.75;
   const torii = tex("wood", 3);
-  const toriiRed = make("torii", 0.68, 0.25, 0.16);
-  toriiRed.diffuseTexture = torii.diffuseTexture;
-  TILE_SIZE.set(toriiRed, [3, 3]);
+  const toriiRed = organic(scene, "torii-lacquer", "#93432c", "lacquer");
+  TILE_SIZE.set(toriiRed, [1.6, 1.6]);
+  const toriiBase = make("toriiBase", 0.09, 0.08, 0.07, 0.15);
   return {
     asphalt: tex("asphalt", 6),
     sidewalk: tex("sidewalk", 3),
@@ -360,6 +387,7 @@ function createMaterials(scene: Scene) {
     wood: torii,
     roof: tex("roof", 5),
     torii: toriiRed,
+    toriiBase,
     rust: tex("rust", 2),
     metal: make("metal", 0.35, 0.37, 0.4, 0.3),
     bark: tex("bark", 2),
