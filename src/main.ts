@@ -3,6 +3,7 @@ import {
   Engine,
   GlowLayer,
   HemisphericLight,
+  Mesh,
   Scene,
   ShadowGenerator,
   Vector3,
@@ -92,7 +93,11 @@ const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
 // Surface textures never change after load.
 for (const m of scene.materials) if (m.name.startsWith("surface:") || m.name.startsWith("card:")) m.freeze();
-const quality = new QualityController(engine, shadows, glowLayer);
+// The glow pass re-draws every mesh; cut-out foliage, signs and the sky never glow
+// and rarely hide anything that does, so leave them out of it.
+for (const m of scene.meshes) if (m.material?.name.startsWith("card:") || m.name === "skyDome") glowLayer.addExcludedMesh(m as Mesh);
+const detail = scene.meshes.filter((m) => m.name === "ferns" || m.name === "giantLeaves" || m.material?.name === "card:foliage");
+const quality = new QualityController(engine, shadows, glowLayer, detail);
 
 let state: State = "start";
 const logbookView = new LogbookView(logbook, time, closeLogbook);
