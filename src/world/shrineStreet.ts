@@ -8,7 +8,7 @@ import {
   Vector3,
 } from "../babylon";
 import { buildDressing } from "./dressing";
-import { surface, type Surface } from "./textures";
+import { card, surface, type Surface } from "./textures";
 import { worldUV } from "./uv";
 
 /**
@@ -255,6 +255,15 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
     return mesh;
   };
 
+  // Ragged cut-out leaf clumps around each crown so canopies don't read as balls.
+  const foliageShell = (crown: Mesh) => {
+    const shell = MeshBuilder.CreateSphere(`${crown.name}Foliage`, { diameter: 1, segments: 6 }, scene);
+    shell.scaling.copyFrom(crown.scaling).scaleInPlace(crown.getBoundingInfo().boundingBox.extendSize.x * 2 * 1.2);
+    shell.position.copyFrom(crown.position);
+    worldUV(shell, 1.6);
+    decor(shell, mat.foliage);
+  };
+
   // Big tree that has burst up through the sidewalk in front of northD.
   const trunk = MeshBuilder.CreateCylinder("bigTreeTrunk", { diameterTop: 0.9, diameterBottom: 1.8, height: 14 }, scene);
   trunk.position.set(28, 7, 6.5);
@@ -266,6 +275,7 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
     crown.position.set(28 + dx, dy, 6.5 + dz);
     crown.scaling.y = 0.75;
     decor(crown, mat.leaves);
+    foliageShell(crown);
   }
 
   // Shrine trees.
@@ -277,6 +287,7 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
     const c = MeshBuilder.CreateSphere(`shrineTreeCanopy${x}${z}`, { diameter: 5, segments: 6 }, scene);
     c.position.set(x, 7, z);
     decor(c, mat.leaves);
+    foliageShell(c);
   }
 
   // Moss creeping out of the alley.
@@ -382,7 +393,7 @@ function createMaterials(scene: Scene) {
   glow.emissiveColor = new Color3(0.35, 0.85, 1);
   glow.disableLighting = true;
   // Rain water: picks up the sky colour through fog and a sharp sun glint.
-  const water = make("water", 0.2, 0.25, 0.27, 1);
+  const water = make("water", 0.2, 0.25, 0.27, 0.55);
   water.specularPower = 128;
   water.alpha = 0.75;
   const torii = tex("wood", 3);
@@ -410,6 +421,7 @@ function createMaterials(scene: Scene) {
     bark: tex("bark", 2),
     leaves: tex("leaves", 3),
     moss: tex("grass", 2),
+    foliage: card(scene, "foliage"),
     alien: make("alien", 0.12, 0.13, 0.16, 0.6),
     solar: tex("solar", 1.5),
     water,
