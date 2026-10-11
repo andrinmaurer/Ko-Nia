@@ -290,24 +290,29 @@ function facade(base: [number, number, number]) {
   };
 }
 
-/** Rolled-down shop shutter, one tile = 4 m x 3.2 m. */
+/** Rolled-down shop shutter, one tile = 4 m x 3.2 m: pale corrugated steel, rust running down from the slats. */
 function shutter(c: Ctx, s: number, r: () => number): void {
-  noise(c, s, r, [128, 122, 112], 18, 400);
-  for (let y = 0; y < s; y += 8) {
-    c.fillStyle = rgba(70, 66, 60, 0.55);
+  noise(c, s, r, [150, 146, 134], 16, 400);
+  // Corrugations: a highlight and a shadow per slat.
+  for (let y = 0; y < s; y += 6) {
+    c.fillStyle = rgba(196, 190, 174, 0.35);
     c.fillRect(0, y, s, 2);
+    c.fillStyle = rgba(64, 60, 54, 0.5);
+    c.fillRect(0, y + 4, s, 1.5);
   }
-  // Rust bleeding down.
-  for (let i = 0; i < 16; i++) {
-    const x = r() * s;
-    const g = c.createLinearGradient(0, s * 0.2, 0, s);
+  // Rust bleeding down in narrow streaks, heavier towards the bottom.
+  for (let i = 0; i < 22; i++) {
+    const x = r() * s, top = s * (0.1 + r() * 0.5);
+    const g = c.createLinearGradient(0, top, 0, s);
     g.addColorStop(0, rgba(140, 70, 30, 0));
-    g.addColorStop(1, rgba(120, 60, 28, 0.7));
+    g.addColorStop(1, rgba(126, 62, 28, 0.55 + r() * 0.2));
     c.fillStyle = g;
-    c.fillRect(x, s * 0.2, 6 + r() * 30, s);
+    c.fillRect(x, top, 2 + r() * 12, s);
   }
-  // Faded graffiti-like paint marks.
-  c.strokeStyle = rgba(60, 120, 140, 0.35);
+  c.fillStyle = rgba(110, 56, 26, 0.35);
+  c.fillRect(0, s * 0.88, s, s * 0.12);
+  // Faded painted marks.
+  c.strokeStyle = rgba(60, 120, 140, 0.3);
   c.lineWidth = 6;
   c.beginPath();
   c.moveTo(s * 0.2, s * 0.6);

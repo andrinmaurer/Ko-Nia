@@ -242,16 +242,25 @@ function buildShrine(scene: Scene, block: BlockFn, solid: SolidFn, mat: Material
   // Kasagi: short segments along a curve that lifts towards both ends, capped in dark copper.
   const curve = (zz: number) => 5.13 + Math.pow(Math.abs(zz) / 4.1, 2.6) * 0.5;
   const N = 12;
+  const segs: Mesh[] = [], caps: Mesh[] = [];
   for (let i = 0; i < N; i++) {
     const z0 = -4.1 + (8.2 * i) / N, z1 = -4.1 + (8.2 * (i + 1)) / N;
     const len = Math.hypot(z1 - z0, curve(z1) - curve(z0));
-    const seg = part(MeshBuilder.CreateBox(`toriiKasagi${i}`, { width: 0.62, height: 0.36, depth: len + 0.04 }, scene));
+    const seg = MeshBuilder.CreateBox("toriiKasagi", { width: 0.62, height: 0.36, depth: len + 0.04 }, scene);
     seg.position.set(0, (curve(z0) + curve(z1)) / 2, (z0 + z1) / 2);
     seg.rotation.x = -Math.atan2(curve(z1) - curve(z0), z1 - z0);
-    const top = part(MeshBuilder.CreateBox(`toriiKasagiCap${i}`, { width: 0.7, height: 0.08, depth: len + 0.04 }, scene), mat.toriiBase);
+    const top = MeshBuilder.CreateBox("toriiKasagiCap", { width: 0.7, height: 0.08, depth: len + 0.04 }, scene);
     top.position.set(0, seg.position.y + 0.21, seg.position.z);
     top.rotation.x = seg.rotation.x;
+    segs.push(seg); caps.push(top);
   }
+  // One mesh each for the beam and its cap (built in the gate's frame, then hung on it).
+  const kasagi = Mesh.MergeMeshes(segs, true)!;
+  kasagi.name = "toriiKasagi";
+  part(kasagi);
+  const kasagiCap = Mesh.MergeMeshes(caps, true)!;
+  kasagiCap.name = "toriiKasagiCap";
+  part(kasagiCap, mat.toriiBase);
 
   // Guardian statues.
   for (const z of [-3.5, 3.5]) {

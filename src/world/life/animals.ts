@@ -160,7 +160,6 @@ class LanternMoths implements LifeForm {
     const hindMat = cutout(scene, "lantern-moth-hindwing", 128, (c, s) => mothWing(c, s, false));
     const fuzz = organic(scene, "lantern-moth-fuzz", "#d6cab4", "fur");
     this.markMat = mat(scene, "mothMark", 0.48, 0.72, 0.68);
-    const legMat = mat(scene, "mothLegs", 0.32, 0.27, 0.22);
     for (let i = 0; i < 12; i++) {
       const node = new TransformNode(`moth${i}`, scene);
       const rest = new Vector3(-5.5 + (i % 3) * 0.9, 5.5, -2.8 + Math.floor(i / 3) * 1.9);
@@ -180,10 +179,11 @@ class LanternMoths implements LifeForm {
       form.ellipsoid([0,0,.07],[.028,.028,.028],fuzz,5);
       for(let j=0;j<4;j++) form.ellipsoid([0,-.002,-.01-j*.022],[.032-j*.004,.028-j*.003,.026],this.markMat,5);
       for(const side of [-1,1]) {
-        form.taper([[side*.008,.006,.08],[side*.03,.03,.11],[side*.05,.035,.13]],.004,.002,legMat,3);
-        for(let k=0;k<4;k++) form.taper([[side*(.012+k*.009),.014+k*.005,.086+k*.011],[side*(.02+k*.009),.02+k*.005,.09+k*.011]],.0015,.001,legMat,3);
-        for(let j=0;j<3;j++) form.taper([[side*.012,-.012,j*.022+.015],[side*.04,-.03,j*.025+.01]],.0025,.0015,legMat,3);
+        form.taper([[side*.008,.006,.08],[side*.03,.03,.11],[side*.05,.035,.13]],.004,.002,fuzz,3);
+        for(let k=0;k<4;k++) form.taper([[side*(.012+k*.009),.014+k*.005,.086+k*.011],[side*(.02+k*.009),.02+k*.005,.09+k*.011]],.0015,.001,fuzz,3);
+        for(let j=0;j<3;j++) form.taper([[side*.012,-.012,j*.022+.015],[side*.04,-.03,j*.025+.01]],.0025,.0015,fuzz,3);
       }
+      // Legs and antennae share the thorax material: two draw calls per body, not three.
       const body=form.finish(node);
       this.moths.push({ node, wings, rest, phase: i * 0.7, radius: 1 + (i % 4) * 0.45 });
       this.scannables.push({

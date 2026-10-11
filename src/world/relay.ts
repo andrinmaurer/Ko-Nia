@@ -52,10 +52,13 @@ type SolidFn = (mesh: Mesh, material: StandardMaterial, castShadow?: boolean) =>
  * The front (console, core window) faces -z. Returns the column, which is the station's scannable/position mesh.
  */
 export function buildRelayModel(scene: Scene, solid: SolidFn, mat: RelayMaterials, x: number, z: number, y = 0): Mesh {
+  // Decorative parts are gathered per material and merged at the end: a few draw calls, not dozens.
+  const buckets = new Map<string, { material: StandardMaterial; cast: boolean; meshes: Mesh[] }>();
   const deco = (mesh: Mesh, material: StandardMaterial, cast = true) => {
-    solid(mesh, material, cast);
-    mesh.checkCollisions = false;
-    mesh.isPickable = false;
+    const key = `${material.name}|${cast}`;
+    const bucket = buckets.get(key) ?? { material, cast, meshes: [] };
+    bucket.meshes.push(mesh);
+    buckets.set(key, bucket);
     return mesh;
   };
   const lit = (mesh: Mesh) => { mesh.material = mat.glow; mesh.isPickable = false; return mesh; };
@@ -147,13 +150,24 @@ export function buildRelayModel(scene: Scene, solid: SolidFn, mat: RelayMaterial
   }
   // Vines hanging from the panel ring and climbing the column.
   const vine = card(scene, "vine");
+  const vines: Mesh[] = [];
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * Math.PI * 2 + 0.4;
     const strand = MeshBuilder.CreatePlane("relayVine", { width: 0.7, height: 2.6 }, scene);
     strand.position.set(x + Math.cos(a) * (i % 2 ? 2 : 0.62), y + (i % 2 ? 3.4 : 2.2), z + Math.sin(a) * (i % 2 ? 2 : 0.62));
     strand.rotation.y = -a + Math.PI / 2;
     strand.material = vine;
-    strand.isPickable = false;
+    vines.push(strand);
+  }
+  const vineMesh = Mesh.MergeMeshes(vines, true)!;
+  vineMesh.name = "relayVine";
+  vineMesh.isPickable = false;
+  for (const { material, cast, meshes } of buckets.values()) {
+    const merged = Mesh.MergeMeshes(meshes, true)!;
+    merged.name = `relayDeco:${material.name}`;
+    solid(merged, material, cast);
+    merged.checkCollisions = false;
+    merged.isPickable = false;
   }
   const ring = lit(MeshBuilder.CreateTorus("relayRing", { diameter: 1.4, thickness: 0.06, tessellation: 32 }, scene));
   ring.position.set(x, y + 3.4, z);

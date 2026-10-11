@@ -2,6 +2,7 @@ import { Color3, Mesh, MeshBuilder, Scene, ShadowGenerator, StandardMaterial, Ve
 import { Kit, scatterCards, stairs } from "./kit";
 import { buildRelayModel } from "./relay";
 import { card, paint, rng, type Ctx } from "./textures";
+import { Form, organic } from "./life/visuals";
 
 /**
  * Block 3, the Flooded Arcade: a glass-roofed shopping street at the foot of the
@@ -292,37 +293,39 @@ function shopKind(index: number, r: () => number): ShopKind {
 }
 
 function mossMaterial(scene: Scene): StandardMaterial {
-  const m = new StandardMaterial("shopfrontMoss", scene);
-  m.diffuseTexture = paint(scene, "tex:shopfrontMoss", 128, drawMoss, true);
-  m.useAlphaFromDiffuseTexture = true;
-  m.diffuseTexture.hasAlpha = true;
-  m.specularColor = Color3.Black();
-  m.backFaceCulling = false;
-  return m;
+  return organic(scene, "shopfront-moss", "#5a7a2e", "moss");
 }
 
+/**
+ * Shopfront Moss photo: thick, lumpy cushions spilling over the shutter, heaviest along the bottom,
+ * with drips hanging down. One merged mesh per mat, tilted with a peeled shutter.
+ */
 function mossMat(scene: Scene, kind: string, x: number, y: number, z: number, w: number, h: number, tilt: number, material: StandardMaterial): Mesh {
-  const p = MeshBuilder.CreatePlane(`shopfrontMoss:${kind}`, { width: w, height: h }, scene);
+  const r = rng(Math.round(x * 31 + z * 7 + y * 13));
+  const lumps: Mesh[] = [];
+  const n = Math.round(6 + w * h * 5);
+  for (let i = 0; i < n; i++) {
+    const u = r() - 0.5, v = Math.pow(r(), 1.6) - 0.5;
+    const size = 0.3 + r() * 0.4;
+    const l = MeshBuilder.CreateSphere(`shopfrontMoss:${kind}`, { diameter: 1, segments: 3 }, scene);
+    l.scaling.set(size * (1 + r() * 0.6), size * (0.6 + r() * 0.4), 0.16 + r() * 0.2);
+    l.position.set(u * w, -v * h, 0);
+    lumps.push(l);
+  }
+  // Drips hanging from the lower edge.
+  for (let i = 0; i < Math.round(w * 0.7); i++) {
+    const l = MeshBuilder.CreateSphere(`shopfrontMoss:${kind}`, { diameter: 1, segments: 2 }, scene);
+    l.scaling.set(0.12 + r() * 0.08, 0.25 + r() * 0.2, 0.1);
+    l.position.set((r() - 0.5) * w * 0.9, -h / 2 - 0.05, 0);
+    lumps.push(l);
+  }
+  const p = Mesh.MergeMeshes(lumps, true)!;
+  p.name = `shopfrontMoss:${kind}`;
   p.position.set(x, y, z);
   p.rotation.x = tilt;
   p.material = material;
   p.receiveShadows = true;
   return p;
-}
-
-function drawMoss(c: Ctx, s: number, r: () => number): void {
-  c.clearRect(0, 0, s, s);
-  for (let i = 0; i < 260; i++) {
-    const x = s / 2 + (r() - 0.5) * s * 0.9;
-    const y = s / 2 + (r() - 0.5) * s * 0.9;
-    const d = Math.hypot((x - s / 2) / (s / 2), (y - s / 2) / (s / 2));
-    if (d > 0.95 * (0.7 + r() * 0.4)) continue;
-    const g = 70 + r() * 60;
-    c.fillStyle = `rgba(${40 + r() * 30}, ${g}, ${30 + r() * 20}, ${0.7 + r() * 0.3})`;
-    c.beginPath();
-    c.arc(x, y, 3 + r() * 7, 0, Math.PI * 2);
-    c.fill();
-  }
 }
 
 // --- Glass roof -------------------------------------------------------------------
@@ -382,20 +385,51 @@ function buildClock(kit: Kit, scene: Scene, m: Mats): Mesh[] {
   const faceMat = new StandardMaterial("arcadeClockFace", scene);
   faceMat.diffuseTexture = paint(scene, "tex:arcadeClock", 256, drawClockFace);
   faceMat.specularColor = new Color3(0.4, 0.4, 0.4);
+  // Arcade Clock photo: a double-faced station clock in a cast case gone green-brown, with moulded
+  // bezels, a crown on top and a hanging loop.
+  const cast = organic(scene, "arcade-clock-case", "#4f5544", "bronze");
+  cast.specularColor = new Color3(0.2, 0.2, 0.17);
   const parts: Mesh[] = [];
-  const housing = MeshBuilder.CreateCylinder("clockHousing", { diameter: 2.7, height: 0.7, tessellation: 24 }, scene);
+  const housing = MeshBuilder.CreateCylinder("clockHousing", { diameter: 2.7, height: 0.62, tessellation: 28 }, scene);
   housing.rotation.z = Math.PI / 2;
   housing.position.copyFrom(c);
-  kit.add(housing, m.steel, { keep: true, collide: false, tile: 1 });
+  kit.add(housing, cast, { keep: true, collide: false });
   parts.push(housing);
+  const trim: Mesh[] = [];
   for (const side of [-1, 1]) {
-    const face = MeshBuilder.CreateDisc("clockFace", { radius: 1.15, tessellation: 24 }, scene);
-    face.position.set(c.x + side * 0.36, c.y, c.z);
+    const face = MeshBuilder.CreateDisc("clockFace", { radius: 1.15, tessellation: 28 }, scene);
+    face.position.set(c.x + side * 0.33, c.y, c.z);
     face.rotation.y = side * -Math.PI / 2;
     face.material = faceMat;
     face.receiveShadows = true;
     parts.push(face);
+    for (const [d, t] of [[2.5, 0.14], [2.72, 0.08]] as const) {
+      const bezel = MeshBuilder.CreateTorus("clockBezel", { diameter: d, thickness: t, tessellation: 28 }, scene);
+      bezel.rotation.z = Math.PI / 2;
+      bezel.position.set(c.x + side * 0.33, c.y, c.z);
+      trim.push(bezel);
+    }
   }
+  // Crown: a stepped cap, scrolls either side and a finial with the hanging loop.
+  const cap = MeshBuilder.CreateBox("clockCrown", { width: 0.75, height: 0.22, depth: 0.9 }, scene);
+  cap.position.set(c.x, c.y + 1.42, c.z);
+  const knob = MeshBuilder.CreateSphere("clockCrown", { diameter: 0.3, segments: 8 }, scene);
+  knob.position.set(c.x, c.y + 1.62, c.z);
+  const loop = MeshBuilder.CreateTorus("clockCrown", { diameter: 0.34, thickness: 0.06, tessellation: 12 }, scene);
+  loop.rotation.y = Math.PI / 2;
+  loop.rotation.z = Math.PI / 2;
+  loop.position.set(c.x, c.y + 1.86, c.z);
+  trim.push(cap, knob, loop);
+  for (const dz of [-1, 1]) {
+    const scroll = MeshBuilder.CreateTorus("clockCrown", { diameter: 0.3, thickness: 0.07, tessellation: 12 }, scene);
+    scroll.rotation.z = Math.PI / 2;
+    scroll.position.set(c.x, c.y + 1.3, c.z + dz * 0.55);
+    trim.push(scroll);
+  }
+  const ornament = Mesh.MergeMeshes(trim, true)!;
+  ornament.name = "clockOrnament";
+  kit.add(ornament, cast, { keep: true, collide: false });
+  parts.push(ornament);
   // Hung from the tie beam above on two rods.
   for (const dz of [-0.7, 0.7]) {
     const rod = MeshBuilder.CreateCylinder("clockRod", { diameter: 0.08, height: ARCADE.roof - 0.35 - (c.y + 1.2), tessellation: 5 }, scene);
@@ -461,46 +495,74 @@ function drawClockFace(c: Ctx, s: number, r: () => number): void {
 function buildFloodPillar(kit: Kit, scene: Scene, m: Mats): Mesh[] {
   const p = ARCADE.floodPillar;
   const pillar = kit.box("floodPillar", p.x0, p.x1, 0, ARCADE.roof, p.z0, p.z1, m.concrete, { keep: true });
-  const marks = MeshBuilder.CreatePlane("floodLine", { width: p.z1 - p.z0 - 0.1, height: ARCADE.roof - 0.4 }, scene);
-  marks.position.set(p.x0 - 0.02, ARCADE.roof / 2 + 0.1, (p.z0 + p.z1) / 2);
-  marks.rotation.y = Math.PI / 2;
   const mat = new StandardMaterial("floodLineMarks", scene);
   mat.diffuseTexture = paint(scene, "tex:floodLine", 512, drawFloodLine, true);
   mat.diffuseTexture.hasAlpha = true;
   mat.useAlphaFromDiffuseTexture = true;
   mat.specularColor = Color3.Black();
-  marks.material = mat;
-  marks.receiveShadows = true;
-  return [pillar, marks];
+  // The same record on both faces along the street, so it reads from either direction.
+  const faces = [-1, 1].map((side) => {
+    const marks = MeshBuilder.CreatePlane("floodLine", { width: p.z1 - p.z0 - 0.1, height: ARCADE.roof - 0.4 }, scene);
+    marks.position.set(side < 0 ? p.x0 - 0.02 : p.x1 + 0.02, ARCADE.roof / 2 + 0.1, (p.z0 + p.z1) / 2);
+    marks.rotation.y = -side * Math.PI / 2;
+    marks.material = mat;
+    marks.receiveShadows = true;
+    return marks;
+  });
+  return [pillar, ...faces];
 }
 
-/** Marks scratched and painted up the pillar, one per day the water rose. */
+/**
+ * Flood Line photo: a painted depth gauge running up the pillar (white band, black ticks, red every
+ * metre) and beside it the marks scratched and painted as the water rose, one per day.
+ */
 function drawFloodLine(c: Ctx, s: number, r: () => number): void {
   c.clearRect(0, 0, s, s);
   // The plane is tall and narrow (1.7 x 6.6 m); the texture is stretched to fit.
+  const gx = s * 0.04, gw = s * 0.16;
+  c.fillStyle = "rgba(214,206,186,0.92)";
+  c.fillRect(gx, 0, gw, s);
+  for (let i = 0; i <= 66; i++) {
+    const y = s - (i / 66) * s;
+    const major = i % 10 === 0, mid = i % 5 === 0;
+    c.fillStyle = major ? "rgba(160,40,30,0.95)" : "rgba(30,28,26,0.85)";
+    c.fillRect(gx, y - (major ? 3 : 1.5), gw * (major ? 1 : mid ? 0.7 : 0.4), major ? 6 : 3);
+    if (major) {
+      // A numeral in the city's script beside each metre.
+      c.fillRect(gx + gw + 4, y - 10, 4, 14);
+      c.fillRect(gx + gw + 4, y - 10, 12, 3);
+      c.fillRect(gx + gw + 12, y - 4, 3, 8);
+    }
+  }
+  // Grime over the gauge.
+  for (let i = 0; i < 120; i++) {
+    c.fillStyle = `rgba(70,64,48,${0.05 + r() * 0.15})`;
+    c.fillRect(gx + r() * gw, r() * s, 2 + r() * 8, 2 + r() * 20);
+  }
   const marks = 26;
   for (let i = 0; i < marks; i++) {
     const t = i / (marks - 1);
     // The water rose slowly at first, then faster.
     const y = s * (0.93 - Math.pow(t, 0.8) * 0.88);
-    const w = s * (0.55 + r() * 0.35);
-    const x0 = s * 0.05 + r() * s * 0.08;
+    const w = s * (0.4 + r() * 0.3);
+    const x0 = s * 0.3 + r() * s * 0.06;
     const ink = i % 4 === 3 ? "rgba(150,52,40,0.85)" : "rgba(38,36,34,0.8)";
     c.fillStyle = ink;
     c.fillRect(x0, y, w, s * 0.006 + r() * s * 0.003);
     // Little tallies and scribbles beside each line: dates and notes in the city's script.
-    c.fillStyle = ink;
     for (let k = 0; k < 3 + r() * 5; k++) c.fillRect(x0 + w + 4 + k * 6, y - 6 + r() * 4, 3, 6 + r() * 5);
   }
   // The highest mark, near the roof, circled.
   c.strokeStyle = "rgba(150,52,40,0.9)";
   c.lineWidth = 4;
   c.beginPath();
-  c.ellipse(s * 0.45, s * 0.05 + 3, s * 0.38, s * 0.025, 0, 0, Math.PI * 2);
+  c.ellipse(s * 0.55, s * 0.05 + 3, s * 0.3, s * 0.025, 0, 0, Math.PI * 2);
   c.stroke();
-  // Water stains: the real line, much lower, where the water stands now.
-  c.fillStyle = "rgba(60,58,40,0.35)";
+  // Water stains: the real line, much lower, where the water stands now, and green slime below it.
+  c.fillStyle = "rgba(60,58,40,0.4)";
   c.fillRect(0, s * 0.9, s, s * 0.1);
+  c.fillStyle = "rgba(70,90,40,0.35)";
+  c.fillRect(0, s * 0.95, s, s * 0.05);
 }
 
 // --- Station entrance and the Predecessor's tracks ---------------------------------------
@@ -566,14 +628,33 @@ function drawMetroSign(c: Ctx, s: number, r: () => number): void {
   }
 }
 
-/** Two tread bands, pressed into the mud, heading east. */
+/** Origin Tracks photo: two broad chevron tread bands pressed into the mud, heading east, with ridges of pushed-up mud. */
 function drawTracks(c: Ctx, s: number, r: () => number): void {
   c.clearRect(0, 0, s, s);
-  for (const y0 of [s * 0.18, s * 0.62]) {
-    for (let x = 4; x < s - 4; x += 9) {
-      c.fillStyle = `rgba(48,38,26,${0.55 + r() * 0.25})`;
-      c.fillRect(x + r(), y0 + r() * 2, 5, s * 0.2);
+  for (const y0 of [s * 0.14, s * 0.6]) {
+    const h = s * 0.26;
+    c.fillStyle = "rgba(38,30,20,0.5)";
+    c.fillRect(0, y0, s, h);
+    c.fillStyle = "rgba(150,128,96,0.45)";
+    c.fillRect(0, y0 - 4, s, 4);
+    c.fillRect(0, y0 + h, s, 4);
+    c.strokeStyle = "rgba(24,18,12,0.85)";
+    c.lineWidth = 3.5;
+    for (let x = 0; x < s + 12; x += 12) {
+      const jx = x + r() * 1.5;
+      c.beginPath();
+      c.moveTo(jx - 6, y0 + 3);
+      c.lineTo(jx + 2, y0 + h / 2);
+      c.lineTo(jx - 6, y0 + h - 3);
+      c.stroke();
     }
+  }
+  // Puddles left standing in the treads.
+  for (let i = 0; i < 10; i++) {
+    c.fillStyle = `rgba(120,130,120,${0.15 + r() * 0.2})`;
+    c.beginPath();
+    c.ellipse(r() * s, (r() < 0.5 ? 0.27 : 0.73) * s, 6 + r() * 14, 3 + r() * 6, 0, 0, Math.PI * 2);
+    c.fill();
   }
 }
 
@@ -595,44 +676,74 @@ function buildProps(kit: Kit, scene: Scene, m: Mats, r: () => number): { glassPi
     p.y = 0.62;
   }
 
-  // Rental bicycles on the entrance landing, rusted into their rack (merged into one mesh).
+  // Rental bicycles on the entrance landing, rusted into their rack (Bicycle Rack photo): step-through
+  // frames, spoked wheels with perished tyres, front baskets with plants growing in them.
   const L = ARCADE.landing;
   const rack = kit.box("bikeRackRail", L.x0 + 0.8, L.x1 - 0.8, L.y + 0.55, L.y + 0.65, 22.6, 22.7, m.steel, { keep: true, collide: false });
-  const bikes: Mesh[] = [];
+  const frameMat = organic(scene, "rental-bike-frame", "#6d4a33", "rusted");
+  const tyreMat = kit.flat("rentalBikeTyre", 0.07, 0.065, 0.06);
+  const basketPlant = organic(scene, "rental-bike-plant", "#4f6e30", "leaf");
+  const bf = new Form(scene, "rentalBikes");
   for (let i = 0; i < 4; i++) {
-    const x = L.x0 + 1.4 + i * 1.5;
-    const lean = (r() - 0.5) * 0.4;
-    for (const dz of [-0.55, 0.55]) {
-      const wheel = MeshBuilder.CreateTorus("bikeWheel", { diameter: 0.66, thickness: 0.05, tessellation: 14 }, scene);
-      wheel.rotation.set(Math.PI / 2, 0, lean);
-      wheel.position.set(x, L.y + 0.33, 22.1 + dz);
-      bikes.push(wheel);
+    const x = L.x0 + 1.4 + i * 1.5, y = L.y;
+    const hub = (z: number): [number, number, number] => [x, y + 0.33, z];
+    for (const z of [21.55, 22.65]) {
+      const tyre = bf.ring(hub(z), 0.66, 0.05, tyreMat);
+      tyre.rotation.z = Math.PI / 2;
+      const rim = bf.ring(hub(z), 0.58, 0.02, frameMat);
+      rim.rotation.z = Math.PI / 2;
+      for (let k = 0; k < 4; k++) {
+        const a = (k / 4) * Math.PI;
+        bf.branch([[x, y + 0.33 + Math.cos(a) * 0.29, z + Math.sin(a) * 0.29], [x, y + 0.33 - Math.cos(a) * 0.29, z - Math.sin(a) * 0.29]], 0.006, frameMat);
+      }
     }
-    const frame = MeshBuilder.CreateBox("bikeFrame", { width: 0.08, height: 0.4, depth: 1 }, scene);
-    frame.position.set(x, L.y + 0.55, 22.1);
-    frame.rotation.z = lean;
-    const basket = MeshBuilder.CreateBox("bikeBasket", { width: 0.36, height: 0.25, depth: 0.3 }, scene);
-    basket.position.set(x, L.y + 0.82, 21.5);
-    bikes.push(frame, basket);
+    // Step-through frame: down tube, seat tube, chain stays, fork and bars.
+    const head: [number, number, number] = [x, y + 0.8, 21.78], bb: [number, number, number] = [x, y + 0.3, 22.15], seat: [number, number, number] = [x, y + 0.82, 22.32];
+    bf.branch([head, [x, y + 0.42, 21.98], bb], 0.022, frameMat);
+    bf.branch([bb, seat], 0.02, frameMat);
+    bf.branch([bb, hub(22.65)], 0.014, frameMat);
+    bf.branch([[x, y + 0.7, 22.3], hub(22.65)], 0.012, frameMat);
+    bf.branch([[x, y + 0.92, 21.74], head, hub(21.55)], 0.018, frameMat);
+    bf.branch([[x - 0.26, y + 0.98, 21.8], [x, y + 0.95, 21.72], [x + 0.26, y + 0.98, 21.8]], 0.014, frameMat);
+    bf.ellipsoid([x, y + 0.86, 22.36], [0.12, 0.06, 0.24], tyreMat, 6);
+    bf.box([x, y + 0.68, 22.62], [0.16, 0.02, 0.36], frameMat);
+    // Wire basket on the front, gone green inside.
+    for (const yy of [0.82, 0.98, 1.08]) bf.ring([x, y + yy, 21.5], 0.36, 0.012, frameMat).scaling.set(1, 1, 0.8);
+    for (let k = 0; k < 4; k++) bf.ellipsoid([x + (k % 2 - 0.5) * 0.14, y + 1.1 + (k > 1 ? 0.06 : 0), 21.5 + (k > 1 ? 0.06 : -0.06)], [0.16, 0.08, 0.1], basketPlant, 5).rotation.z = (k - 1.5) * 0.4;
   }
-  const bikeMesh = Mesh.MergeMeshes(bikes, true)!;
+  const bikeMesh = Mesh.MergeMeshes(bf.finish(), true, true, undefined, false, true)!;
   bikeMesh.name = "rentalBikes";
-  kit.add(bikeMesh, m.rust, { keep: true, collide: false, tile: 0.5 });
+  const bikeMulti = bikeMesh.material;
+  kit.add(bikeMesh, frameMat, { keep: true, collide: false });
+  bikeMesh.material = bikeMulti;
   const bikeRack = [rack, bikeMesh];
 
-  // A child's plastic boat, caught at the canal's edge south of the crossing.
-  const toyBoat: Mesh[] = [];
-  const plastic = kit.flat("toyBoatPlastic", 0.62, 0.42, 0.22, 0.2);
-  const hull = MeshBuilder.CreateBox("toyBoatHull", { width: 0.75, height: 0.18, depth: 0.32 }, scene);
-  hull.position.set(335.1, ARCADE.water + 0.05, 4.2);
-  hull.rotation.y = 0.4;
-  kit.add(hull, plastic, { keep: true, collide: false, tile: 0.5 });
-  toyBoat.push(hull);
-  const cabin = MeshBuilder.CreateBox("toyBoatCabin", { width: 0.28, height: 0.16, depth: 0.22 }, scene);
-  cabin.position.set(335.05, ARCADE.water + 0.21, 4.18);
-  cabin.rotation.y = 0.4;
-  kit.add(cabin, kit.flat("toyBoatWhite", 0.75, 0.72, 0.64), { keep: true, collide: false, tile: 0.5 });
-  toyBoat.push(cabin);
+  // A child's plastic boat, caught at the canal's edge south of the crossing (Toy Boat photo): blue
+  // hull with a white gunwale and red stripe, a cream cabin with dark windows and a red funnel.
+  const blue = kit.flat("toyBoatPlastic", 0.18, 0.38, 0.62, 0.3);
+  const white = kit.flat("toyBoatWhite", 0.82, 0.8, 0.72, 0.2);
+  const red = kit.flat("toyBoatRed", 0.7, 0.16, 0.12, 0.2);
+  const pane = kit.flat("toyBoatWindow", 0.08, 0.1, 0.12, 0.4);
+  const tf = new Form(scene, "toyBoat");
+  tf.box([0, 0.05, 0], [0.6, 0.16, 0.32], blue);
+  tf.ellipsoid([0.3, 0.05, 0], [0.34, 0.16, 0.32], blue, 8);
+  tf.ellipsoid([-0.3, 0.05, 0], [0.12, 0.16, 0.32], blue, 8);
+  tf.box([0.02, 0.11, 0], [0.78, 0.025, 0.335], red);
+  tf.box([0.02, 0.14, 0], [0.76, 0.025, 0.32], white);
+  tf.box([-0.04, 0.22, 0], [0.3, 0.14, 0.22], white);
+  tf.box([-0.04, 0.3, 0], [0.34, 0.025, 0.26], red);
+  for (const dz of [-0.112, 0.112]) for (const dx of [-0.12, 0.03]) tf.box([dx, 0.23, dz], [0.07, 0.05, 0.005], pane);
+  const funnel = MeshBuilder.CreateCylinder("toyBoat", { diameter: 0.08, height: 0.14, tessellation: 8 }, scene);
+  funnel.position.set(-0.08, 0.38, 0);
+  tf.add(funnel, red);
+  const boat = Mesh.MergeMeshes(tf.finish(), true, true, undefined, false, true)!;
+  boat.name = "toyBoat";
+  boat.position.set(335.1, ARCADE.water, 4.2);
+  boat.rotation.y = 0.4;
+  const boatMulti = boat.material;
+  kit.add(boat, blue, { keep: true, collide: false });
+  boat.material = boatMulti;
+  const toyBoat = [boat];
 
   return { glassPiles, bikeRack, toyBoat };
 }
