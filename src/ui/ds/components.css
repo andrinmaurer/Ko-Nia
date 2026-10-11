@@ -1,0 +1,173 @@
+
+/* Ko-Nia components. Every value comes from tokens.css; class prefix kn- */
+
+.kn-stage {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  padding: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.kn-stage.kn-col { flex-direction: column; }
+.kn-icon { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.kn-upper { text-transform: uppercase; }
+:where(.kn-stage) :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* MenuItem — title screen and pause menu */
+.kn-menu { display: flex; flex-direction: column; gap: var(--space-2); width: 320px; max-width: 100%; }
+.kn-menu-item {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-heading); font-size: 18px; line-height: 24px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-muted);
+  border-left: 1px solid transparent;
+}
+.kn-menu-item:hover { color: var(--ink); }
+.kn-menu-item[aria-current="true"] {
+  color: var(--ink);
+  background: linear-gradient(90deg, var(--signal-soft), transparent);
+  border-left-color: var(--signal);
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.kn-menu-item[aria-current="true"] .kn-icon { color: var(--signal); }
+
+/* CategoryTab — Logbook top bar */
+.kn-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--line); }
+.kn-tab {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  min-width: 88px; padding: var(--space-2) var(--space-3) var(--space-3);
+  font-family: var(--font-heading); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.kn-tab .kn-icon { width: 24px; height: 24px; }
+.kn-tab:hover { color: var(--ink); }
+.kn-tab[aria-selected="true"] { color: var(--signal); background: var(--surface-selected); border-bottom-color: var(--signal); }
+.kn-key {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 var(--space-1);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--ink-muted);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+}
+
+/* EntryRow — species list in the Logbook */
+.kn-list { display: flex; flex-direction: column; gap: var(--space-1); width: 300px; max-width: 100%; }
+.kn-entry {
+  display: grid; grid-template-columns: 64px 1fr auto; gap: var(--space-3); align-items: center;
+  padding: var(--space-1); padding-right: var(--space-3);
+  background: var(--surface-raised); border: 1px solid transparent; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--ink);
+}
+.kn-entry:hover { border-color: var(--line); }
+.kn-entry[aria-selected="true"] { background: var(--surface-selected); border-color: var(--line-strong); box-shadow: var(--glow-signal); }
+.kn-thumb { width: 64px; height: 48px; border-radius: var(--radius-sm); background: var(--void); overflow: hidden; }
+.kn-thumb svg { width: 100%; height: 100%; display: block; }
+.kn-entry-name { font-size: 13px; line-height: 18px; font-weight: 500; min-width: 0; }
+.kn-entry-latin { font-size: 12px; line-height: 16px; font-style: italic; color: var(--ink-muted); }
+.kn-entry-pct { font-family: var(--font-mono); font-size: 13px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.kn-entry[aria-selected="true"] .kn-entry-pct { color: var(--signal); }
+.kn-entry.is-undiscovered .kn-thumb, .kn-entry.is-undiscovered .kn-entry-name { opacity: var(--opacity-undiscovered); }
+
+/* StatusPill */
+.kn-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: 13px; line-height: 18px; font-weight: 500;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-pill); color: var(--ink-muted);
+}
+.kn-pill.is-research { color: var(--signal); background: var(--signal-soft); border-color: var(--signal); }
+.kn-pill.is-complete { color: var(--research); border-color: var(--research); }
+.kn-pill.is-danger { color: var(--caution); border-color: var(--caution); }
+.kn-ring { width: 14px; height: 14px; }
+
+/* StatBar — Key information */
+.kn-stats { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-2) var(--space-3); align-items: center; width: 280px; max-width: 100%; font-size: 13px; }
+.kn-stat-label { color: var(--ink-muted); }
+.kn-bar { height: 6px; background: var(--void); border-radius: var(--radius-sm); overflow: hidden; }
+.kn-bar > span { display: block; height: 100%; background: var(--signal); }
+.kn-bar.is-high > span { background: var(--research); }
+.kn-bar.is-low > span { background: var(--caution); }
+.kn-stat-val { font-family: var(--font-mono); color: var(--ink-muted); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* SectionLabel + KeyValue — Taxonomy, Discovery */
+.kn-section { display: flex; flex-direction: column; gap: var(--space-2); width: 300px; max-width: 100%; }
+.kn-label { font-family: var(--font-heading); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--signal); margin: 0; }
+.kn-kv { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-1) var(--space-4); margin: 0; font-size: 13px; line-height: 18px; }
+.kn-kv dt { color: var(--ink-muted); }
+.kn-kv dd { margin: 0; color: var(--ink); }
+.kn-kv .is-data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ObservationChecklist */
+.kn-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); width: 260px; max-width: 100%; font-size: 13px; }
+.kn-check { display: flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); }
+.kn-box { width: 16px; height: 16px; flex: none; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); display: grid; place-items: center; }
+.kn-check.is-done { color: var(--ink); }
+.kn-check.is-done .kn-box { background: var(--research); border-color: var(--research); color: var(--surface); }
+.kn-box svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+
+/* DiscoveryToast */
+.kn-toast {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4); width: 360px; max-width: 100%; box-sizing: border-box;
+  background: var(--scrim); border: 1px solid var(--line-strong); border-radius: var(--radius-md); box-shadow: var(--panel);
+  backdrop-filter: blur(8px);
+}
+.kn-toast-mark { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--bloom); display: grid; place-items: center; color: var(--bloom); }
+.kn-toast-title { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: var(--signal); text-transform: uppercase; }
+.kn-toast-name { font-family: var(--font-heading); font-size: 20px; line-height: 24px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); }
+.kn-toast-field { font-size: 13px; color: var(--ink-muted); }
+
+/* ConsoleAction — Relay Station console */
+.kn-console { display: flex; flex-direction: column; gap: var(--space-2); width: 300px; max-width: 100%; padding: var(--space-4); background: var(--scrim); border: 1px solid var(--line-strong); border-radius: var(--radius-md); }
+.kn-console-title { font-family: var(--font-heading); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--signal); margin: 0 0 var(--space-1); }
+.kn-action {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: grid; grid-template-columns: 20px 1fr; gap: 2px var(--space-3); align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--ink);
+}
+.kn-action .kn-icon { color: var(--signal); grid-row: span 2; }
+.kn-action-label { font-family: var(--font-heading); font-size: 15px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.kn-action-sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.kn-action:hover { border-color: var(--line-strong); background: var(--surface-selected); }
+.kn-action.is-primary { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+.kn-action.is-primary .kn-icon, .kn-action.is-primary .kn-action-sub { color: var(--on-signal); }
+
+/* Hud — always-visible readouts */
+.kn-hud { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; padding: var(--space-3) var(--space-4); background: var(--scrim); border-radius: var(--radius-md); }
+.kn-energy { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; color: var(--ink); }
+.kn-cells { display: flex; gap: 3px; }
+.kn-cells i { width: 10px; height: 14px; background: var(--signal); border-radius: 1px; }
+.kn-cells i.is-empty { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.kn-compass { position: relative; width: 220px; height: 28px; border-bottom: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+.kn-compass span { position: absolute; bottom: 6px; transform: translateX(-50%); }
+.kn-compass .is-n { color: var(--ink); }
+.kn-compass .is-pin { color: var(--marker); }
+.kn-compass::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 1px; height: 8px; background: var(--signal); }
+.kn-mode { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); background: var(--signal-soft); color: var(--signal); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* SearchField */
+.kn-search { display: flex; gap: var(--space-2); width: 300px; max-width: 100%; }
+.kn-input { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); height: 32px; background: var(--void); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); color: var(--ink-muted); }
+.kn-input input { all: unset; flex: 1; min-width: 0; font-size: 13px; color: var(--ink); }
+.kn-input input::placeholder { color: var(--ink-faint); }
+.kn-input:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.kn-select { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); height: 32px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 13px; color: var(--ink); white-space: nowrap; }
+
+/* Annotation — concept-sheet callouts */
+.kn-annot { display: grid; grid-template-columns: 12px 1fr; gap: 0 var(--space-2); width: 240px; max-width: 100%; }
+.kn-annot-dot { width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--ink); }
+.kn-annot-title { font-family: var(--font-heading); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.kn-annot-text { grid-column: 2; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.kn-sheet-head { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: stretch; }
+.kn-sheet-rule { width: 1px; background: var(--line-strong); }
+.kn-sheet-meta { font-family: var(--font-display); font-weight: 300; font-size: 10px; line-height: 1.6; letter-spacing: 0.28em; text-transform: uppercase; color: var(--ink-muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .kn-menu-item, .kn-tab, .kn-entry, .kn-action { transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease; }
+}
+.kn-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
