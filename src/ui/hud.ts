@@ -58,6 +58,7 @@ export class Hud {
         </div>
         <span class="kn-mode" data-el="mode"></span>
         <span class="hud-integrity" data-el="health"></span>
+        <span class="hud-logbook" data-el="logbook"></span>
       </div>
       <div class="kn-toast hud-toast" data-el="toast">
         <div class="kn-toast-mark" data-el="toastMark"></div>
@@ -145,6 +146,12 @@ export class Hud {
             <span class="kn-action-sub">${a.sub}</span></div>`,
         )
         .join("");
+  }
+
+  /** Logbook reminder in the HUD bar while pages have news the player has not read. */
+  setUnread(count: number): void {
+    this.el.logbook.classList.toggle("show", count > 0);
+    this.el.logbook.innerHTML = count > 0 ? `${icon("book")}Logbook · ${count} new <span class="kn-key">Tab</span>` : "";
   }
 
   hint(html: string | undefined): void {

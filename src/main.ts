@@ -162,7 +162,8 @@ const detail = scene.meshes.filter((m) => m.name === "ferns" || m.name === "gian
 const quality = new QualityController(engine, shadows, glowLayer, detail);
 
 let state: State = "start";
-const logbookView = new LogbookView(logbook, time, closeLogbook);
+const logbookView = new LogbookView(logbook, time, () => regions.active, closeLogbook);
+logbook.onChange(() => hud.setUnread(logbook.unread.size));
 const connectedRelay = () => relays.find((r) => r.activated && r.inRange(robot.position));
 const upgradesView = new UpgradesView(upgrades, logbook, () => !!connectedRelay(), installUpgrade, () => { const relay = connectedRelay(); if (relay) useRelay(relay); }, closePanel);
 const mapView = new MapView(upgrades, logbook, robot, relays, save, closePanel);
@@ -250,20 +251,32 @@ function save(): void {
 
 // --- Onboarding hints (only for a new game) -----------------------------------
 
-const tutorial = { active: !saved, elapsed: 0, lensOpened: false, scanned: false, logbookOpened: false };
+const tutorial = { active: !saved, elapsed: 0, boot: 0, lensOpened: false, scanned: false, logbookOpened: false, doneAt: 0 };
+
+/** First activation: a few lines from the robot's own systems before the control hints. */
+const BOOT_LINES: [number, string][] = [
+  [0.5, "Survey unit online."],
+  [4, "Memory: empty. Origin: unknown."],
+  [7.5, "Directive: find life. Observe it. Record everything."],
+];
 
 function updateTutorial(dt: number): void {
   if (!tutorial.active) return;
   tutorial.elapsed += dt;
+  if (tutorial.boot < BOOT_LINES.length && tutorial.elapsed >= BOOT_LINES[tutorial.boot][0]) {
+    hud.caption(BOOT_LINES[tutorial.boot][1], 3.2);
+    tutorial.boot++;
+  }
   if (!tutorial.lensOpened) {
-    hud.hint(tutorial.elapsed < 8 ? "<b>WASD</b> move · <b>Mouse</b> look around" : "<b>Right click</b> to open the scanner lens");
+    hud.hint(tutorial.elapsed < 11 ? "<b>WASD</b> move · <b>Mouse</b> look around" : "<b>Right click</b> to open the scanner lens");
   } else if (!tutorial.scanned) {
     hud.hint("Aim at something and <b>left click</b> to scan · <b>← →</b> change scan mode");
   } else if (!tutorial.logbookOpened) {
-    hud.hint("<b>Tab</b> opens the Logbook");
+    hud.hint("A new page is in your Logbook · <b>Tab</b> opens it");
   } else {
-    hud.hint("<b>E</b> activates a nearby relay · <b>U</b> opens upgrades");
-    if (tutorial.elapsed > 45) { hud.hint(undefined); tutorial.active = false; }
+    tutorial.doneAt ||= tutorial.elapsed;
+    hud.hint("Each page says what to observe next · <b>E</b> at a relay saves, recharges and uploads");
+    if (tutorial.elapsed - tutorial.doneAt > 20) { hud.hint(undefined); tutorial.active = false; }
   }
 }
 
@@ -297,6 +310,7 @@ function openLogbook(): void {
 
 function closeLogbook(): void {
   logbookView.close();
+  hud.setUnread(logbook.unread.size);
   state = "paused";
   renderMenu("paused");
   startScreen.classList.remove("hidden");
@@ -512,7 +526,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+  robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";
