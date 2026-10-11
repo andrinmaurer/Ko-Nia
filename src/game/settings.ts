@@ -14,6 +14,13 @@ export interface Settings {
   textSize: 90 | 100 | 115 | 130;
   reducedMotion: boolean;
   showFps: boolean;
+  /** Volumes, 0–1. */
+  volume: number;
+  ambience: number;
+  effects: number;
+  music: number;
+  /** Show captions for sounds (creature calls, warnings). */
+  subtitles: boolean;
 }
 
 const KEY = "konia.settings.v1";
@@ -27,6 +34,11 @@ export const DEFAULT_SETTINGS: Settings = {
   textSize: 100,
   reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
   showFps: true,
+  volume: 0.8,
+  ambience: 0.8,
+  effects: 0.8,
+  music: 0.6,
+  subtitles: true,
 };
 
 export function loadSettings(): Settings {

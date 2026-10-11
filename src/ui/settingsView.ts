@@ -1,6 +1,8 @@
 import { DEFAULT_SETTINGS, saveSettings, type Settings } from "../game/settings";
 import { icon } from "./icons";
 
+const VOLUME_LABELS = { volume: "Main volume", ambience: "Ambience", effects: "Effects and creatures", music: "Music" };
+
 /**
  * Settings form shown in place of the title / pause menu. Every change applies
  * and saves immediately; "Back" returns to the menu.
@@ -52,7 +54,14 @@ export class SettingsView {
           <input type="checkbox" name="reducedMotion"${s.reducedMotion ? " checked" : ""}></label>
         <label class="settings-row"><span>Show frame rate</span>
           <input type="checkbox" name="showFps"${s.showFps ? " checked" : ""}></label>
-        <p class="caption settings-note">Volume and subtitles arrive with the sound pass.</p>
+        <p class="kn-label">Sound</p>
+        ${(["volume", "ambience", "effects", "music"] as const)
+          .map((k) => `<label class="settings-row"><span>${VOLUME_LABELS[k]}</span>
+          <input type="range" name="${k}" min="0" max="1" step="0.05" value="${s[k]}">
+          <output class="data-sm">${Math.round(s[k] * 100)}%</output></label>`)
+          .join("")}
+        <label class="settings-row"><span>Captions for sounds</span>
+          <input type="checkbox" name="subtitles"${s.subtitles ? " checked" : ""}></label>
         <div class="settings-actions">
           <button class="kn-menu-item" data-settings="back" aria-current="true">${icon("play")}Back</button>
           <button class="kn-menu-item" data-settings="reset">Reset to defaults</button>
@@ -69,8 +78,15 @@ export class SettingsView {
       case "fov":
         s.fov = Number(t.value);
         break;
+      case "volume":
+      case "ambience":
+      case "effects":
+      case "music":
+        s[t.name] = Number(t.value);
+        break;
       case "invertLook":
       case "reducedMotion":
+      case "subtitles":
       case "showFps":
         s[t.name] = (t as HTMLInputElement).checked;
         break;
@@ -87,7 +103,7 @@ export class SettingsView {
         return;
     }
     const out = t.parentElement?.querySelector("output");
-    if (out) out.textContent = t.name === "fov" ? `${s.fov}°` : `${s.lookSpeed.toFixed(2)}×`;
+    if (out) out.textContent = t.name === "fov" ? `${s.fov}°` : t.name === "lookSpeed" ? `${s.lookSpeed.toFixed(2)}×` : `${Math.round(Number(t.value) * 100)}%`;
     this.commit();
   }
 
