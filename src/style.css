@@ -685,3 +685,15 @@ button {
     border-right: none;
   }
 }
+
+/* Playtest report shown in the pause menu when the clipboard is blocked. */
+.playtest-report {
+  width: min(520px, 90vw);
+  height: 220px;
+  padding: var(--space-3);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  font: 12px/1.5 var(--font-mono);
+  resize: none;
+}

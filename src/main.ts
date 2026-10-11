@@ -11,6 +11,7 @@ import {
 } from "./babylon";
 import type { Scannable, GameContext, LifeForm } from "./game/context";
 import { DayCycle } from "./game/dayCycle";
+import { Playtest } from "./game/playtest";
 import { QualityController } from "./game/quality";
 import { Input, LOCK_CHANGE } from "./input";
 import { clearSave, Logbook, readSave, writeSave } from "./discovery/logbook";
@@ -110,6 +111,7 @@ if (saved) {
   time.day = saved.day;
   time.hours = saved.hours;
 }
+const playtest = new Playtest(logbook, !saved);
 renderMenu(saved ? "continue" : "start");
 
 /** Title / pause menu. "New game" clears the local save. */
@@ -117,13 +119,31 @@ function renderMenu(mode: "start" | "continue" | "paused"): void {
   const first = mode === "start" ? "Start" : "Continue";
   startMenu.innerHTML =
     `<button class="kn-menu-item" data-action="play" aria-current="true">${icon("play")}${first}</button>` +
-    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("plus")}New game</button>`);
+    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("plus")}New game</button>`) +
+    (mode === "paused" ? `<button class="kn-menu-item" data-action="report">${icon("clipboard")}Copy playtest report</button>` : "");
+}
+
+/** Copies the playtest report; where the clipboard is blocked, shows it for manual copying. */
+async function copyReport(button: HTMLElement): Promise<void> {
+  const text = playtest.report();
+  try {
+    await navigator.clipboard.writeText(text);
+    button.innerHTML = `${icon("check")}Report copied`;
+  } catch {
+    const area = document.createElement("textarea");
+    area.className = "playtest-report";
+    area.readOnly = true;
+    area.value = text;
+    button.replaceWith(area);
+    area.select();
+  }
 }
 
 startMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   const action = (e.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
   if (action === "play") input.requestLock();
+  if (action === "report") void copyReport((e.target as HTMLElement).closest<HTMLElement>("[data-action]")!);
   if (action === "new") {
     clearSave();
     location.reload();
@@ -178,6 +198,7 @@ document.addEventListener(LOCK_CHANGE, () => {
 function openLogbook(): void {
   state = "logbook";
   tutorial.logbookOpened = true;
+  playtest.logbookOpened();
   logbookView.open();
   input.releaseLock();
   startScreen.classList.add("hidden");
@@ -229,6 +250,7 @@ function restAtRelay(): void {
 }
 
 function respawn(): void {
+  playtest.disabled();
   void transition(() => {
     robot.teleport(relay.spawn, relay.spawnYaw);
     rig.yaw = relay.spawnYaw;
@@ -245,7 +267,10 @@ let autosaveTimer = 30;
 
 scene.onBeforeRenderObservable.add(() => {
   const real = engine.getDeltaTime() / 1000;
-  if (state === "playing") quality.update(real);
+  if (state === "playing") {
+    quality.update(real);
+    playtest.sampleFrame(real, quality.label);
+  }
   frame(Math.min(real, 0.05));
 });
 
@@ -268,6 +293,7 @@ function frame(dt: number): void {
 }
 
 function updateGame(dt: number): void {
+  playtest.update(dt);
   if (input.wasPressed("KeyV")) rig.toggleMode();
   if (input.wasPressed("Tab")) {
     openLogbook();
@@ -281,6 +307,7 @@ function updateGame(dt: number): void {
   if (input.wasPressed("ArrowRight")) scanner.cycleMode(1);
   if (input.wasPressed("Mouse0") && scanner.lensOn) {
     scanner.scan();
+    playtest.scanned();
     tutorial.scanned ||= logbook.completion() > 0;
   }
 
@@ -365,7 +392,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, scanner, relay, hud, life, scannables, ctx,
+  robot, rig, scene, input, time, wind, status, logbook, scanner, relay, hud, life, scannables, ctx, playtest,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

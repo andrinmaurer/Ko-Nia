@@ -6,7 +6,9 @@ The design documents live in [`docs/`](docs/). The current goal is the MVP descr
 
 ## Play it
 
-Once GitHub Pages is switched on for this repository (Settings > Pages > Source: GitHub Actions), every push to `main` publishes the game to https://andrinmaurer.github.io/Ko-Nia/ via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+Every push to `main` publishes the game to https://andrinmaurer.github.io/Ko-Nia/ via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+
+To run a playtest, follow [`docs/PLAYTEST.md`](docs/PLAYTEST.md). The pause menu (Esc) has a "Copy playtest report" button that gives you first-entry time, observations, frame rate and a timeline of the session.
 
 ## Running it locally
 
