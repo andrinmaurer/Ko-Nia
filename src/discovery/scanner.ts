@@ -143,7 +143,8 @@ export class Scanner {
       if (l === "ancestry") this.hud.toast("Ancestry identified", name, { kind, field: def.latin });
       if (l === "behavior") this.hud.toast("Behavior observed", name, { kind, field: def.observation });
       if (l === "complete" && stepsFor(def) === 3) this.hud.toast("Entry complete", def.name, { kind, field: def.latin });
-      if (l === "nothing") this.hud.notice(nextHint(def, p) ?? "No new information");
+      // The lead for the next step lives in the Logbook only, so the player has a reason to open it.
+      if (l === "nothing") this.hud.notice(nextHint(def, p) ? "Nothing new here · the Logbook has a lead (Tab)" : "No new information");
     }
   }
 
@@ -213,7 +214,7 @@ export function displayName(def: EntryDef, p: EntryProgress, complete: boolean):
 /** Hint for the next missing step of an organism page. */
 export function nextHint(def: EntryDef, p: EntryProgress): string | undefined {
   if (!def.hints || !p.discovered) return undefined;
-  if (!p.bio) return def.hints.bio;
+  if (!p.bio) return `${def.hints.bio} Switch the lens to Biological with ← → and scan up close.`;
   if (!p.observed) return def.hints.observe;
   return undefined;
 }

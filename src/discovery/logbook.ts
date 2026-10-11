@@ -44,6 +44,10 @@ export interface SaveData {
  */
 export class Logbook {
   progress: Record<string, EntryProgress> = {};
+  /** Entries that learned something since the player last looked at their page. Not saved. */
+  readonly unread = new Set<string>();
+  /** The most recently updated unread entry, opened first in the Logbook. */
+  lastUpdated: string | undefined;
   private listeners: (() => void)[] = [];
 
   constructor() {
@@ -117,6 +121,10 @@ export class Logbook {
     }
     if (learned.length > 0 && this.isComplete(id)) learned.push("complete");
     if (learned.length === 0) learned.push("nothing");
+    else {
+      this.unread.add(id);
+      this.lastUpdated = id;
+    }
     this.changed();
     return learned;
   }
@@ -131,6 +139,12 @@ export class Logbook {
     p.locationId = id;
     this.changed();
     return true;
+  }
+
+  /** Silent on purpose: the Logbook calls it while rendering. */
+  markRead(id: string): void {
+    if (!this.unread.delete(id)) return;
+    if (this.lastUpdated === id) this.lastUpdated = [...this.unread].pop();
   }
 
   toJSON(): Record<string, EntryProgress> {

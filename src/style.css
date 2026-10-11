@@ -632,11 +632,6 @@ button {
   width: auto;
 }
 
-.lb-hint {
-  margin: 0;
-  color: var(--ink-muted);
-}
-
 .lb-colony {
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -721,3 +716,85 @@ button {
 .exploration-map { width: 100%; min-height: 280px; background: #081216; border: 1px solid #36575d; }
 @media (max-width: 600px) { .upgrade-panel { inset: 2vh 2vw; padding: 16px; } }
 .upgrade-panel.hidden { display: none; }
+
+/* --- Guidance: unread Logbook news, field leads, next-step lead ------------- */
+
+.hud-logbook {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.hud-logbook.show {
+  display: inline-flex;
+  animation: hud-logbook-in 0.6s ease-out;
+}
+
+@keyframes hud-logbook-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.kn-entry.is-new .kn-entry-name::after,
+.lb-sub.is-new > span:first-of-type::after,
+.kn-tab.is-new::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.lb-leads {
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.lb-leads .kn-label {
+  margin: 0 0 var(--space-2);
+}
+
+.lb-leads ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lb-leads li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lb-leads .data-sm {
+  color: var(--ink-faint);
+}
+
+.lb-hint {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--signal);
+  background: var(--surface);
+}
+
+.lb-hint .kn-label,
+.lb-hint p {
+  margin: 0;
+}
+
+.lb-intro {
+  margin: var(--space-3) 0 0;
+  color: var(--ink-muted);
+}
