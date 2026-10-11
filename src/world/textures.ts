@@ -20,13 +20,13 @@ export function rng(seed: number): () => number {
   };
 }
 
-export function paint(scene: Scene, name: string, size: number, draw: (c: Ctx, s: number, r: () => number) => void, alpha = false): DynamicTexture {
+export function paint(scene: Scene, name: string, size: number, draw: (c: Ctx, s: number, r: () => number) => void, alpha = false, invertY = false): DynamicTexture {
   const tex = new DynamicTexture(name, { width: size, height: size }, scene, true);
   const c = tex.getContext() as unknown as Ctx;
   let seed = 0;
   for (const ch of name) seed = (seed * 31 + ch.charCodeAt(0)) | 0;
   draw(c, size, rng(seed));
-  tex.update(false);
+  tex.update(invertY);
   tex.hasAlpha = alpha;
   tex.wrapU = Texture.WRAP_ADDRESSMODE;
   tex.wrapV = Texture.WRAP_ADDRESSMODE;
@@ -775,7 +775,9 @@ export function card(scene: Scene, kind: Card): StandardMaterial {
   if (existing instanceof StandardMaterial) return existing;
   const def = CARDS[kind];
   const m = new StandardMaterial(name, scene);
-  m.diffuseTexture = paint(scene, `tex:${kind}`, def.size, def.draw, def.alpha);
+  // Canvas rows run downwards, but plane UVs run from the base upwards.
+  // Flip on upload so rooted plants grow up and vine curtains hang down.
+  m.diffuseTexture = paint(scene, `tex:${kind}`, def.size, def.draw, def.alpha, true);
   // Alpha-tested (hasAlpha without useAlphaFromDiffuseTexture): no sorting, cheap on mobile GPUs.
   m.backFaceCulling = false;
   m.specularColor = Color3.Black();
