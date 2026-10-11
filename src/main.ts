@@ -8,10 +8,11 @@ import {
   Scene,
   ShadowGenerator,
   Vector3,
-} from "@babylonjs/core";
+} from "./babylon";
 import type { Scannable, GameContext, LifeForm } from "./game/context";
 import { DayCycle } from "./game/dayCycle";
-import { Input } from "./input";
+import { QualityController } from "./game/quality";
+import { Input, LOCK_CHANGE } from "./input";
 import { clearSave, Logbook, readSave, writeSave } from "./discovery/logbook";
 import { Scanner } from "./discovery/scanner";
 import { CameraRig } from "./player/cameraRig";
@@ -24,6 +25,7 @@ import { createAnimals, createStaticDiscoveries } from "./world/life/animals";
 import { createPlants } from "./world/life/plants";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
+import { Sky } from "./world/sky";
 import { Wind } from "./world/wind";
 
 type State = "start" | "playing" | "paused" | "logbook" | "transition";
@@ -32,9 +34,11 @@ const canvas = document.getElementById("game") as HTMLCanvasElement;
 const startScreen = document.getElementById("start") as HTMLDivElement;
 const startMenu = document.getElementById("start-menu") as HTMLDivElement;
 
-const engine = new Engine(canvas, true, { stencil: true }, true);
+// Resolution is managed by QualityController (no automatic device-ratio scaling).
+const engine = new Engine(canvas, true, { stencil: true, powerPreference: "high-performance" }, false);
 const scene = new Scene(engine);
 scene.collisionsEnabled = true;
+scene.skipPointerMovePicking = true;
 
 // Lighting follows the day/night cycle; see applyLighting().
 const sky = new HemisphericLight("sky", new Vector3(0, 1, 0), scene);
@@ -44,13 +48,14 @@ sun.position = new Vector3(40, 70, -25);
 scene.fogMode = Scene.FOGMODE_EXP2;
 scene.fogDensity = 0.012;
 scene.ambientColor = new Color3(0.3, 0.32, 0.3);
-const glowLayer = new GlowLayer("glowLayer", scene, { blurKernelSize: 32 });
-glowLayer.intensity = 0.7;
+const glowLayer = new GlowLayer("glowLayer", scene, { blurKernelSize: 16, mainTextureRatio: 0.25 });
+glowLayer.intensity = 0.9;
 
 const shadows = new ShadowGenerator(2048, sun);
 shadows.usePercentageCloserFiltering = true;
 shadows.bias = 0.002;
 
+const skyDome = new Sky(scene);
 const world = buildShrineStreet(scene, shadows);
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -86,6 +91,12 @@ const ctx: GameContext = {
 const life: LifeForm[] = [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)];
 const scannables: Scannable[] = [...life.flatMap((l) => l.scannables), ...createStaticDiscoveries(ctx)];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
+
+// --- Rendering cost ------------------------------------------------------------
+
+// Surface textures never change after load.
+for (const m of scene.materials) if (m.name.startsWith("surface:") || m.name.startsWith("card:")) m.freeze();
+const quality = new QualityController(engine, shadows, glowLayer);
 
 let state: State = "start";
 const logbookView = new LogbookView(logbook, time, closeLogbook);
@@ -150,8 +161,9 @@ function updateTutorial(dt: number): void {
 canvas.addEventListener("click", () => {
   if (!input.locked && state !== "logbook") input.requestLock();
 });
-document.addEventListener("pointerlockchange", () => {
+document.addEventListener(LOCK_CHANGE, () => {
   if (input.locked) {
+    if (input.freeMouse && state === "start") hud.notice("Mouse look is limited here: move the cursor towards an edge to turn.");
     if (state === "start") {
       hud.toast("Systems online", "Explorer unit", { kind: "system", field: saved ? "Welcome back." : "First activation." });
     }
@@ -167,7 +179,7 @@ function openLogbook(): void {
   state = "logbook";
   tutorial.logbookOpened = true;
   logbookView.open();
-  document.exitPointerLock();
+  input.releaseLock();
   startScreen.classList.add("hidden");
 }
 
@@ -231,7 +243,11 @@ function respawn(): void {
 let fpsTimer = 0;
 let autosaveTimer = 30;
 
-scene.onBeforeRenderObservable.add(() => frame(Math.min(engine.getDeltaTime() / 1000, 0.05)));
+scene.onBeforeRenderObservable.add(() => {
+  const real = engine.getDeltaTime() / 1000;
+  if (state === "playing") quality.update(real);
+  frame(Math.min(real, 0.05));
+});
 
 function frame(dt: number): void {
   hud.update(dt);
@@ -247,7 +263,7 @@ function frame(dt: number): void {
   fpsTimer -= dt;
   if (fpsTimer <= 0) {
     fpsTimer = 0.5;
-    hud.setFps(`${engine.getFps().toFixed(0)} FPS · ${rig.mode === "first" ? "1st" : "3rd"} person`);
+    hud.setFps(`${engine.getFps().toFixed(0)} FPS · ${quality.label} · ${rig.mode === "first" ? "1st" : "3rd"} person`);
   }
 }
 
@@ -327,10 +343,11 @@ function applyLighting(): void {
   sun.direction = time.sunDirection;
   sun.intensity = 1.4 * d;
   sun.diffuse = Color3.Lerp(new Color3(1, 0.6, 0.4), new Color3(1, 0.9, 0.75), d);
-  sky.intensity = 0.25 + 0.55 * d;
+  sky.intensity = 0.35 + 0.6 * d;
   sky.diffuse = Color3.Lerp(new Color3(0.35, 0.45, 0.75), new Color3(0.75, 0.82, 0.9), d);
   const skyColor = Color3.Lerp(NIGHT_SKY, DAY_SKY, d);
   scene.clearColor = new Color4(skyColor.r, skyColor.g, skyColor.b, 1);
+  skyDome.setTint(Color3.Lerp(new Color3(0.06, 0.08, 0.16), new Color3(1, 1, 1), d));
   scene.fogColor = Color3.Lerp(NIGHT_SKY, new Color3(0.66, 0.72, 0.74), d);
 }
 

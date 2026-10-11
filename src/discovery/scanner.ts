@@ -5,7 +5,7 @@ import {
   Ray,
   Vector3,
   type Camera,
-} from "@babylonjs/core";
+} from "../babylon";
 import type { GameContext, Scannable } from "../game/context";
 import { SCAN_COST } from "../player/status";
 import type { Hud } from "../ui/hud";

@@ -6,7 +6,10 @@ import {
   ShadowGenerator,
   StandardMaterial,
   Vector3,
-} from "@babylonjs/core";
+} from "../babylon";
+import { buildDressing } from "./dressing";
+import { surface, type Surface } from "./textures";
+import { worldUV } from "./uv";
 
 /**
  * Greybox of "Shrine Street", the MVP block described in
@@ -33,6 +36,8 @@ export function buildShrineStreet(scene: Scene, shadows: ShadowGenerator): Shrin
 
   const solid = (mesh: Mesh, material: StandardMaterial, castShadow = true): Mesh => {
     mesh.material = material;
+    const tile = TILE_SIZE.get(material);
+    if (tile) worldUV(mesh, tile[0], tile[1]);
     mesh.checkCollisions = true;
     mesh.receiveShadows = true;
     if (castShadow) shadows.addShadowCaster(mesh);
@@ -61,6 +66,11 @@ export function buildShrineStreet(scene: Scene, shadows: ShadowGenerator): Shrin
   const street = MeshBuilder.CreateGround("street", { width: STREET_LENGTH, height: 7 }, scene);
   street.position.y = 0.01;
   solid(street, mat.asphalt, false);
+  for (const z of [-4.25, 4.25]) {
+    const walk = MeshBuilder.CreateGround(`sidewalk${z}`, { width: STREET_LENGTH, height: 1.5 }, scene);
+    walk.position.set(0, 0.015, z);
+    solid(walk, mat.sidewalk, false);
+  }
 
   buildBoundary(block, mat);
   buildNorthRow(block, mat);
@@ -71,6 +81,7 @@ export function buildShrineStreet(scene: Scene, shadows: ShadowGenerator): Shrin
   buildVegetation(scene, shadows, mat);
   buildPuddle(scene, mat);
   const relayStation = buildRelayStation(scene, solid, mat);
+  buildDressing(scene, shadows);
 
   return { spawn: new Vector3(-12, 0.2, -1), spawnYaw: Math.PI / 2, relayStation };
 }
@@ -89,23 +100,53 @@ type SolidFn = (mesh: Mesh, material: StandardMaterial, castShadow?: boolean) =>
 
 function buildBoundary(block: BlockFn, mat: Materials): void {
   // Collapsed towers close the block on every side, so no invisible walls are needed.
-  block("boundaryNorth", -62, 62, 25, 27, 22, mat.concreteDark);
-  block("boundarySouth", -62, 62, -28, -26, 18, mat.concreteDark);
-  block("boundaryWest", -64, -60, -28, 27, 24, mat.concreteDark);
-  block("boundaryEast", 60, 64, -28, 27, 20, mat.concreteDark);
+  block("boundaryNorth", -62, 62, 25, 27, 22, mat.facadeDark);
+  block("boundarySouth", -62, 62, -28, -26, 18, mat.facadeDark);
+  block("boundaryWest", -64, -60, -28, 27, 24, mat.facadeDark);
+  block("boundaryEast", 60, 64, -28, 27, 20, mat.facadeDark);
   // Rubble at the west end of the street.
   block("rubbleWest1", -60, -55, -5, 5, 2.5, mat.rubble);
   block("rubbleWest2", -60, -57, -3, 3, 4.5, mat.rubble);
 }
 
+/**
+ * A building: facade-textured block with a roof cap and, on the street side, a
+ * ground-floor storefront strip. `front` is the z of the street-facing wall.
+ */
+function building(
+  block: BlockFn,
+  mat: Materials,
+  name: string,
+  x0: number,
+  x1: number,
+  z0: number,
+  z1: number,
+  height: number,
+  facade: StandardMaterial,
+  front?: number,
+  awning = true,
+): void {
+  block(name, x0, x1, z0, z1, height, facade);
+  const cap = block(`${name}Roof`, x0, x1, z0, z1, 0.05, mat.roof, height);
+  cap.checkCollisions = false;
+  if (front !== undefined) {
+    const out = front > 0 ? -1 : 1;
+    const strip = block(`${name}Store`, x0 + 0.2, x1 - 0.2, front + out * 0.035 - 0.015, front + out * 0.035 + 0.015, 3.2, mat.shutter);
+    strip.checkCollisions = false;
+    if (!awning) return;
+    const cover = block(`${name}Awning`, x0 + 0.2, x1 - 0.2, Math.min(front, front + out * 1.1), Math.max(front, front + out * 1.1), 0.12, mat.rust, 3.2);
+    cover.checkCollisions = false;
+  }
+}
+
 function buildNorthRow(block: BlockFn, mat: Materials): void {
-  block("northA", -60, -35, 5, 25, 12, mat.concrete);
-  block("northB", -35, -10, 5, 25, 15, mat.concreteDark);
+  building(block, mat, "northA", -60, -35, 5, 25, 12, mat.facadeLight, 5);
+  building(block, mat, "northB", -35, -10, 5, 25, 15, mat.facadeWarm, 5);
   // Low building whose roof the overpass lands on; from here you can drop onto the noodle shop roof.
-  block("northC", -10, 6, 5, 25, 6, mat.concrete);
-  block("northShopBack", 6, 22, 20, 25, 10, mat.concreteDark);
-  block("northD", 22, 40, 5, 25, 9, mat.concrete);
-  block("northE", 40, 60, 5, 25, 8, mat.concreteDark);
+  building(block, mat, "northC", -10, 6, 5, 25, 6, mat.facadeDark, 5);
+  building(block, mat, "northShopBack", 6, 22, 20, 25, 10, mat.facadeDark);
+  building(block, mat, "northD", 22, 40, 5, 25, 9, mat.facadeLight, 5);
+  building(block, mat, "northE", 40, 60, 5, 25, 8, mat.facadeWarm, 5);
 }
 
 function buildNoodleShop(block: BlockFn, mat: Materials): void {
@@ -137,13 +178,13 @@ function buildNoodleShop(block: BlockFn, mat: Materials): void {
 
 function buildSouthRow(block: BlockFn, mat: Materials): void {
   // The outer buildings run all the way to the boundary to close off the alley ends.
-  block("southA", -60, -35, -26, -5, 8, mat.concreteDark);
-  block("southB", -35, -12, -20, -5, 7, mat.concrete);
-  block("southC", -12, 5, -20, -5, 11, mat.concreteDark);
+  building(block, mat, "southA", -60, -35, -26, -5, 8, mat.facadeDark, -5);
+  building(block, mat, "southB", -35, -12, -20, -5, 7, mat.facadeLight, -5, false); // no awning: the ramp runs here
+  building(block, mat, "southC", -12, 5, -20, -5, 11, mat.facadeWarm, -5, false);
   // Gap at x 5..8 is the passage into the back alley.
-  block("southD", 8, 22, -20, -5, 6, mat.concrete);
-  block("southE", 22, 40, -20, -5, 13, mat.concreteDark);
-  block("southF", 40, 60, -26, -5, 8, mat.concrete);
+  building(block, mat, "southD", 8, 22, -20, -5, 6, mat.facadeLight, -5);
+  building(block, mat, "southE", 22, 40, -20, -5, 13, mat.facadeDark, -5);
+  building(block, mat, "southF", 40, 60, -26, -5, 8, mat.facadeLight, -5);
   // Alley clutter: AC units and drains along the backs of the buildings.
   for (const x of [-28, -19, -8, 12, 18, 31]) block(`alleyAC${x}`, x, x + 1.2, -20.8, -20, 0.9, mat.rust, 1.6);
   for (const x of [-22, 0, 27]) block(`alleyDrain${x}`, x, x + 1.5, -23.5, -22, 0.15, mat.metal);
@@ -219,10 +260,13 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
   trunk.position.set(28, 7, 6.5);
   trunk.checkCollisions = true;
   decor(trunk, mat.bark);
-  const canopy = MeshBuilder.CreateSphere("bigTreeCanopy", { diameter: 11, segments: 8 }, scene);
-  canopy.position.set(28, 14, 8);
-  canopy.scaling.y = 0.7;
-  decor(canopy, mat.leaves);
+  // Canopy as a cluster of overlapping crowns.
+  for (const [dx, dy, dz, d] of [[0, 14, 1.5, 8], [-3.5, 12.5, 0, 6], [3.5, 13, 2, 6.5], [0.5, 16, 3.5, 6], [-1.5, 12, 4.5, 5.5], [2.5, 15, -0.5, 5]]) {
+    const crown = MeshBuilder.CreateSphere("bigTreeCanopy", { diameter: d, segments: 6 }, scene);
+    crown.position.set(28 + dx, dy, 6.5 + dz);
+    crown.scaling.y = 0.75;
+    decor(crown, mat.leaves);
+  }
 
   // Shrine trees.
   for (const [x, z] of [[58, -4], [58, 4], [49, -4.5]]) {
@@ -252,26 +296,82 @@ function buildPuddle(scene: Scene, mat: Materials): void {
   water.isPickable = false;
 }
 
+/**
+ * Relay Station after the reference sheet: stepped base, slim column with a glowing
+ * data core, a ring of solar panels and an antenna array on top (about 6.5 m).
+ */
 function buildRelayStation(scene: Scene, solid: SolidFn, mat: Materials): Mesh {
-  const pillar = MeshBuilder.CreateCylinder("relayStation", { diameterTop: 0.35, diameterBottom: 1, height: 6, tessellation: 6 }, scene);
-  pillar.position.set(-12, 3, 2);
+  const x = -12;
+  const z = 2;
+  const deco = (mesh: Mesh, material: StandardMaterial, cast = true) => {
+    solid(mesh, material, cast);
+    mesh.checkCollisions = false;
+    mesh.isPickable = false;
+    return mesh;
+  };
+  // Stepped base, low enough to walk over.
+  for (const [r, y] of [[2.2, 0.08], [1.6, 0.2]] as const) {
+    const step = MeshBuilder.CreateCylinder("relayStep", { diameter: r * 2, height: 0.16, tessellation: 8 }, scene);
+    step.position.set(x, y, z);
+    deco(step, mat.concrete, false);
+  }
+  const pillar = MeshBuilder.CreateCylinder("relayStation", { diameterTop: 0.45, diameterBottom: 1.1, height: 6, tessellation: 8 }, scene);
+  pillar.position.set(x, 3, z);
   solid(pillar, mat.alien);
-  const ring = MeshBuilder.CreateTorus("relayRing", { diameter: 1.6, thickness: 0.08, tessellation: 32 }, scene);
-  ring.position.set(-12, 3.2, 2);
+  // Framing struts around the column.
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const strut = MeshBuilder.CreateBox("relayStrut", { width: 0.12, height: 5.2, depth: 0.12 }, scene);
+    strut.position.set(x + Math.cos(a) * 0.55, 2.8, z + Math.sin(a) * 0.55);
+    strut.rotation.set(Math.sin(a) * 0.06, 0, -Math.cos(a) * 0.06);
+    deco(strut, mat.metal);
+  }
+  // Data core: glowing capsule behind the street-side window.
+  const core = MeshBuilder.CreateCylinder("relayCore", { diameter: 0.5, height: 1.6, tessellation: 12 }, scene);
+  core.position.set(x, 1.6, z - 0.32);
+  core.material = mat.glow;
+  core.isPickable = false;
+  // Solar panel ring.
+  const hub = MeshBuilder.CreateCylinder("relayHub", { diameter: 1.2, height: 0.3, tessellation: 8 }, scene);
+  hub.position.set(x, 4.6, z);
+  deco(hub, mat.rust);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const panel = MeshBuilder.CreateBox("relayPanel", { width: 1.9, height: 0.06, depth: 0.9 }, scene);
+    panel.position.set(x + Math.cos(a) * 1.55, 4.75 + (i % 2) * 0.12, z + Math.sin(a) * 1.55);
+    panel.rotation.set(0, -a, 0.22);
+    deco(panel, mat.solar);
+  }
+  // Antenna array.
+  for (const [dx, dz, h] of [[0, 0, 2.2], [0.25, 0.1, 1.4], [-0.2, -0.15, 1.7]] as const) {
+    const mast = MeshBuilder.CreateCylinder("relayMast", { diameter: 0.06, height: h, tessellation: 4 }, scene);
+    mast.position.set(x + dx, 6 + h / 2, z + dz);
+    deco(mast, mat.metal, false);
+  }
+  const ring = MeshBuilder.CreateTorus("relayRing", { diameter: 1.4, thickness: 0.06, tessellation: 32 }, scene);
+  ring.position.set(x, 3.4, z);
   ring.material = mat.glow;
   ring.isPickable = false;
   scene.onBeforeRenderObservable.add(() => {
     ring.rotation.y += 0.01;
     ring.rotation.x = Math.sin(performance.now() / 1500) * 0.3;
   });
-  const tip = MeshBuilder.CreateSphere("relayTip", { diameter: 0.4 }, scene);
-  tip.position.set(-12, 6.2, 2);
+  const tip = MeshBuilder.CreateSphere("relayTip", { diameter: 0.22, segments: 8 }, scene);
+  tip.position.set(x, 8.2, z);
   tip.material = mat.glow;
   tip.isPickable = false;
   return pillar;
 }
 
+/** Metres covered by one texture repeat (u, v) for each textured material. */
+const TILE_SIZE = new Map<StandardMaterial, [number, number]>();
+
 function createMaterials(scene: Scene) {
+  const tex = (kind: Surface, u: number, v = u) => {
+    const m = surface(scene, kind);
+    TILE_SIZE.set(m, [u, v]);
+    return m;
+  };
   const make = (name: string, r: number, g: number, b: number, spec = 0.05) => {
     const m = new StandardMaterial(name, scene);
     m.diffuseColor = new Color3(r, g, b);
@@ -281,25 +381,37 @@ function createMaterials(scene: Scene) {
   const glow = new StandardMaterial("glow", scene);
   glow.emissiveColor = new Color3(0.35, 0.85, 1);
   glow.disableLighting = true;
-  const water = make("water", 0.18, 0.28, 0.3, 0.6);
-  water.alpha = 0.85;
+  // Rain water: picks up the sky colour through fog and a sharp sun glint.
+  const water = make("water", 0.2, 0.25, 0.27, 1);
+  water.specularPower = 128;
+  water.alpha = 0.75;
+  const torii = tex("wood", 3);
+  const toriiRed = make("torii", 0.68, 0.25, 0.16);
+  toriiRed.diffuseTexture = torii.diffuseTexture;
+  TILE_SIZE.set(toriiRed, [3, 3]);
   return {
-    asphalt: make("asphalt", 0.22, 0.23, 0.23),
-    dirt: make("dirt", 0.3, 0.33, 0.24),
-    concrete: make("concrete", 0.62, 0.61, 0.58),
-    concreteDark: make("concreteDark", 0.46, 0.46, 0.45),
-    plaster: make("plaster", 0.7, 0.66, 0.58),
-    rubble: make("rubble", 0.5, 0.48, 0.45),
-    stone: make("stone", 0.55, 0.55, 0.52),
-    wood: make("wood", 0.42, 0.28, 0.18),
-    roof: make("roof", 0.25, 0.27, 0.3),
-    torii: make("torii", 0.68, 0.25, 0.16),
-    rust: make("rust", 0.48, 0.28, 0.17),
+    asphalt: tex("asphalt", 6),
+    sidewalk: tex("sidewalk", 3),
+    dirt: tex("dirt", 5),
+    concrete: tex("concrete", 4),
+    concreteDark: tex("concreteDark", 4),
+    facadeLight: tex("facadeLight", 8, 6.4),
+    facadeDark: tex("facadeDark", 8, 6.4),
+    facadeWarm: tex("facadeWarm", 8, 6.4),
+    shutter: tex("shutter", 4, 3.2),
+    plaster: tex("plaster", 3),
+    rubble: tex("rubble", 3),
+    stone: tex("stone", 2),
+    wood: torii,
+    roof: tex("roof", 5),
+    torii: toriiRed,
+    rust: tex("rust", 2),
     metal: make("metal", 0.35, 0.37, 0.4, 0.3),
-    bark: make("bark", 0.3, 0.22, 0.15),
-    leaves: make("leaves", 0.2, 0.45, 0.16),
-    moss: make("moss", 0.28, 0.46, 0.18),
+    bark: tex("bark", 2),
+    leaves: tex("leaves", 3),
+    moss: tex("grass", 2),
     alien: make("alien", 0.12, 0.13, 0.16, 0.6),
+    solar: tex("solar", 1.5),
     water,
     glow,
   };

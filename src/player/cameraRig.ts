@@ -1,4 +1,4 @@
-import { Ray, Scene, UniversalCamera, Vector3 } from "@babylonjs/core";
+import { Ray, Scene, UniversalCamera, Vector3 } from "../babylon";
 import type { Input } from "../input";
 import type { Robot } from "./robot";
 
@@ -34,7 +34,7 @@ export class CameraRig {
   }
 
   update(dt: number, input: Input): void {
-    const look = input.consumeLook();
+    const look = input.consumeLook(dt);
     this.yaw += look.x * MOUSE_SENSITIVITY;
     this.pitch = clamp(this.pitch + look.y * MOUSE_SENSITIVITY, MIN_PITCH, MAX_PITCH);
 

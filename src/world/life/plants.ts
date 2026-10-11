@@ -6,7 +6,7 @@ import {
   StandardMaterial,
   TransformNode,
   Vector3,
-} from "@babylonjs/core";
+} from "../../babylon";
 import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { mat } from "./materials";
 
