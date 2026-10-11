@@ -8,6 +8,8 @@ import {
   Vector3,
 } from "../babylon";
 import { buildDressing } from "./dressing";
+import { dressArtifacts } from "./artifacts";
+import { guardianVisual } from "./life/visuals";
 import { card, surface, type Surface } from "./textures";
 import { worldUV } from "./uv";
 
@@ -82,6 +84,7 @@ export function buildShrineStreet(scene: Scene, shadows: ShadowGenerator): Shrin
   buildPuddle(scene, mat);
   const relayStation = buildRelayStation(scene, solid, mat);
   buildDressing(scene, shadows);
+  dressArtifacts(scene, shadows);
 
   return { spawn: new Vector3(-12, 0.2, -1), spawnYaw: Math.PI / 2, relayStation };
 }
@@ -172,7 +175,7 @@ function buildNoodleShop(block: BlockFn, mat: Materials): void {
   // Interior props.
   block("shopCounter", 9, 18, 11, 12, 1.1, mat.wood);
   block("shopVending", 19.5, 21.5, 6.5, 8.5, 0.9, mat.rust); // toppled vending machine
-  block("shopMenuBoard", 9, 14, 14.6, 14.95, 1.2, mat.wood, 2);
+  block("shopMenuBoard", 10.5, 11.7, 14.6, 14.7, .9, mat.wood, 2);
   block("shopRubble", 12, 14.5, 16, 17.5, 0.8, mat.rubble); // fallen ceiling
 }
 
@@ -224,13 +227,18 @@ function buildShrine(scene: Scene, block: BlockFn, solid: SolidFn, mat: Material
   const nuki = torii(MeshBuilder.CreateBox("toriiNuki", { width: 0.35, height: 0.3, depth: 6.2 }, scene));
   nuki.position.set(44, 4.1, 0.25);
   nuki.rotation.x = tiltZ;
+  for(const side of [-1,1]) {
+    const tip=torii(MeshBuilder.CreateBox(`toriiTip${side}`,{width:.6,height:.35,depth:1.1},scene));
+    tip.position.set(44,5.3,side*3.75+.3);tip.rotation.x=side*.22;
+  }
+
 
   // Guardian statues.
   for (const z of [-3.5, 3.5]) {
     block(`statueBase${z}`, 47, 48, z - 0.5, z + 0.5, 0.8, mat.stone);
-    const statue = MeshBuilder.CreateSphere(`statue${z}`, { diameter: 1, segments: 8 }, scene);
-    statue.scaling.y = 1.4;
-    statue.position.set(47.5, 1.5, z);
+    const statue = guardianVisual(scene, `statue${z}`, mat.stone, z < 0);
+    statue.position.set(47.5,.8,z);
+    statue.rotation.y=-Math.PI/2;
     solid(statue, mat.stone);
   }
 
