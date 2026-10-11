@@ -25,7 +25,10 @@ import { LogbookView } from "./ui/logbookView";
 import { Atmosphere } from "./world/atmosphere";
 import { createAnimals, createStaticDiscoveries } from "./world/life/animals";
 import { createPlants } from "./world/life/plants";
+import { createArcadeDiscoveries, createArcadeLife } from "./world/life/arcadeLife";
 import { buildCedarSilhouette, createTempleDiscoveries, createTempleLife } from "./world/life/templeLife";
+import { buildArcadePassage, passageRegionAt, PASSAGE } from "./world/arcadePassage";
+import { buildFloodedArcade, waterAt } from "./world/floodedArcade";
 import { Regions } from "./world/regions";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
@@ -35,6 +38,10 @@ import { Sky } from "./world/sky";
 import { Wind } from "./world/wind";
 
 type State = "start" | "playing" | "paused" | "logbook" | "transition";
+
+/** Wading: speed factor and extra energy per metre. */
+const WADE_SPEED = 0.55;
+const WADE_COST_PER_METRE = 0.6;
 
 /** Spore cloud: how long the scanner stays offline, and the energy it costs. */
 const SPORE_SECONDS = 20;
@@ -61,15 +68,22 @@ const shadows = new ShadowGenerator(2048, sun);
 shadows.usePercentageCloserFiltering = true;
 shadows.bias = 0.002;
 
-// Two blocks, drawn one at a time (see world/regions.ts), joined by the always-drawn stair lane.
+// Blocks drawn one at a time (see world/regions.ts). The passages between two
+// blocks are drawn with either of them.
 const regions = new Regions(scene, shadows, "street");
 const world = regions.capture("street", () => {
   const street = buildShrineStreet(scene, shadows);
   buildCedarSilhouette(scene);
   return street;
 });
-buildStairLane(scene, shadows);
+regions.capture(["street", "temple"], () => buildStairLane(scene, shadows));
 const temple = regions.capture("temple", () => buildTempleHill(scene, shadows));
+regions.capture(["temple", "arcade"], () => buildArcadePassage(scene, shadows));
+const arcade = regions.capture("arcade", () => {
+  const built = buildFloodedArcade(scene, shadows);
+  buildCedarSilhouette(scene);
+  return built;
+});
 const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -86,6 +100,7 @@ const logbook = new Logbook();
 const relays = [
   new RelayStation("street", world.relayStation, world.spawn, world.spawnYaw, scene.getMaterialByName("glow") as StandardMaterial | null),
   new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
+  new RelayStation("arcade", arcade.relayStation, arcade.spawn, arcade.spawnYaw, arcade.relayGlow),
 ];
 /** Where the robot respawns: the Relay Station it used last. */
 let homeRelay = relays[0];
@@ -117,11 +132,13 @@ const ctx: GameContext = {
 const life: LifeForm[] = [
   ...regions.capture("street", () => [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)]),
   ...regions.capture("temple", () => createTempleLife(ctx, shadows)),
+  ...regions.capture("arcade", () => createArcadeLife(ctx, shadows, arcade)),
 ];
 const scannables: Scannable[] = [
   ...life.flatMap((l) => l.scannables),
   ...regions.capture("street", () => createStaticDiscoveries(ctx)),
   ...regions.capture("temple", () => createTempleDiscoveries(ctx, temple)),
+  ...regions.capture("arcade", () => createArcadeDiscoveries(ctx, arcade)),
 ];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
@@ -131,7 +148,8 @@ const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 for (const m of scene.materials) if (m.name.startsWith("surface:") || m.name.startsWith("card:")) m.freeze();
 // The glow pass re-draws every mesh; cut-out foliage, signs and the sky never glow
 // and rarely hide anything that does, so leave them out of it.
-for (const m of scene.meshes) if (m.material?.name.startsWith("card:") || m.name === "skyDome") glowLayer.addExcludedMesh(m as Mesh);
+// Haze silhouettes are lit by their own emissive colour and must not bloom either.
+for (const m of scene.meshes) if (m.material?.name.startsWith("card:") || m.name === "skyDome" || m.name.endsWith("Haze")) glowLayer.addExcludedMesh(m as Mesh);
 const detail = scene.meshes.filter((m) => m.name === "ferns" || m.name === "giantLeaves" || m.material?.name === "card:foliage");
 const quality = new QualityController(engine, shadows, glowLayer, detail);
 
@@ -365,12 +383,15 @@ function updateGame(dt: number): void {
   time.update(dt);
   wind.update(dt);
 
+  const wading = regions.active === "arcade" && waterAt(robot.position) === "wade";
   const moved = robot.update(dt, input, rig.yaw, rig.mode === "first", {
     canSprint: true,
     depleted: status.depleted,
+    speedScale: wading ? WADE_SPEED : 1,
   });
   ctx.robotSpeed = moved / dt;
   status.update(dt, moved, robot.isSprinting, time.daylight);
+  if (wading) status.energy = Math.max(0, status.energy - moved * WADE_COST_PER_METRE);
   rig.update(dt, input);
   for (const l of life) l.update(dt);
   scanner.update(dt);
@@ -416,9 +437,14 @@ function updateGame(dt: number): void {
   }
 }
 
-/** Shows the block the robot is in; the swap happens inside the covered stair lane. */
+/** Shows the block the robot is in; swaps happen inside the covered passages. */
 function updateRegion(): void {
-  const want = laneRegionAt(robot.position, regions.active);
+  const p = robot.position;
+  const active = regions.active;
+  const want =
+    p.x > PASSAGE.path.x0 - 20
+      ? passageRegionAt(p, active === "street" ? "temple" : active)
+      : laneRegionAt(p, active === "arcade" ? "temple" : active);
   if (want) regions.activate(want);
 }
 
@@ -446,7 +472,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, scanner, relay: relays[0], relays, regions, temple, hud, life, scannables, ctx, playtest, quality,
+  robot, rig, scene, input, time, wind, status, logbook, scanner, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

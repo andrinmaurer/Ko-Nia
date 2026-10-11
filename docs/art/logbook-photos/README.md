@@ -7,3 +7,7 @@ The game uses optimized 960 × 640 WebP assets in `public/logbook`, selected by 
 Full-resolution PNG masters are in `masters`. Exact prompts are in `prompts.json`, and `manifest.json` maps entry IDs to the game assets and masters. Generated with the built-in image generation tool; all selected images were visually reviewed.
 
 Validation: production build/typecheck, browser checks for first scan and location discovery, continuing render frames and unchanged renderer size, legacy-save migration, concealment of undiscovered images, and switching both regions. All 36 photo mappings and assets are checked before delivery.
+
+## Flooded Arcade (prompts only)
+
+The 16 Flooded Arcade entries (37–52 in `prompts.json`, marked `"status": "prompt only"`) have prompts but no photographs yet. Until a WebP is added to `public/logbook` and mapped in `src/discovery/photos.ts`, the Logbook shows "No image" for them.

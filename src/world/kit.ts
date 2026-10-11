@@ -165,12 +165,13 @@ export function scatterCards(
 }
 
 /**
- * Stone stairs from (x0, y0) up to (x1, y1) between z0 and z1: a hidden ramp the
- * robot walks on, with visible steps on top of it.
+ * Stone stairs from (x0, y0) up to (x1, y1) between z0 and z1 (x1 may be west of
+ * x0): a hidden ramp the robot walks on, with visible steps on top of it.
  */
 export function stairs(kit: Kit, scene: Scene, name: string, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, material: StandardMaterial): void {
   const ramp = MeshBuilder.CreateBox(`${name}Ramp`, { width: Math.hypot(x1 - x0, y1 - y0), height: 0.2, depth: z1 - z0 }, scene);
-  ramp.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+  // Rising towards +x or -x; the ramp keeps its top face up either way.
+  ramp.rotation.z = x1 >= x0 ? Math.atan2(y1 - y0, x1 - x0) : -Math.atan2(y1 - y0, x0 - x1);
   // The ramp's top surface runs along the steps' front edges.
   const a = ramp.rotation.z;
   ramp.position.set((x0 + x1) / 2 + 0.1 * Math.sin(a), (y0 + y1) / 2 - 0.1 * Math.cos(a), (z0 + z1) / 2);
@@ -182,7 +183,9 @@ export function stairs(kit: Kit, scene: Scene, name: string, x0: number, x1: num
   const run = (x1 - x0) / steps;
   for (let i = 0; i < steps; i++) {
     const top = y0 + (i + 1) * rise;
-    kit.box(`${name}Step`, x0 + i * run, x0 + (i + 1) * run + 0.05, Math.max(y0 - 0.5, top - 1.2), top, z0, z1, material, { collide: false });
+    const a = x0 + i * run;
+    const b = x0 + (i + 1) * run + Math.sign(run) * 0.05;
+    kit.box(`${name}Step`, Math.min(a, b), Math.max(a, b), Math.max(y0 - 0.5, top - 1.2), top, z0, z1, material, { collide: false });
   }
 }
 
