@@ -6,19 +6,26 @@
     <title>Ko-Nia</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body data-theme="terminal">
     <canvas id="game"></canvas>
-    <div id="hud">
-      <div id="hud-mode"></div>
-      <div id="hud-fps"></div>
-    </div>
+    <div id="hud"></div>
+    <div id="logbook"></div>
     <div id="start">
-      <h1>Ko-Nia</h1>
-      <p>Click to start</p>
-      <ul>
-        <li><b>WASD</b> move · <b>Shift</b> sprint · <b>Space</b> jump</li>
-        <li><b>Mouse</b> look · <b>V</b> switch camera · <b>Esc</b> release mouse</li>
-      </ul>
+      <img class="start-wordmark" src="ko-nia-wordmark-light.png" alt="Ko-Nia" />
+      <p class="tagline">A WORLD RECLAIMED. A TRUTH REDISCOVERED.</p>
+      <div class="kn-menu" id="start-menu"></div>
+      <dl class="start-keys data-sm">
+        <dt>WASD</dt><dd>Move</dd>
+        <dt>Shift</dt><dd>Sprint</dd>
+        <dt>Space</dt><dd>Jump / climb</dd>
+        <dt>Right click</dt><dd>Scanner lens</dd>
+        <dt>Left click</dt><dd>Scan</dd>
+        <dt>← →</dt><dd>Scan mode</dd>
+        <dt>Tab</dt><dd>Logbook</dd>
+        <dt>E</dt><dd>Use</dd>
+        <dt>V</dt><dd>Camera</dd>
+        <dt>Esc</dt><dd>Pause</dd>
+      </dl>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

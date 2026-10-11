@@ -132,7 +132,7 @@ function buildNoodleShop(block: BlockFn, mat: Materials): void {
   block("shopCounter", 9, 18, 11, 12, 1.1, mat.wood);
   block("shopVending", 19.5, 21.5, 6.5, 8.5, 0.9, mat.rust); // toppled vending machine
   block("shopMenuBoard", 9, 14, 14.6, 14.95, 1.2, mat.wood, 2);
-  block("shopRubble", 12.5, 15.5, 16.5, 18.5, 0.8, mat.rubble); // fallen ceiling
+  block("shopRubble", 12, 14.5, 16, 17.5, 0.8, mat.rubble); // fallen ceiling
 }
 
 function buildSouthRow(block: BlockFn, mat: Materials): void {
@@ -190,7 +190,7 @@ function buildShrine(scene: Scene, block: BlockFn, solid: SolidFn, mat: Material
     const statue = MeshBuilder.CreateSphere(`statue${z}`, { diameter: 1, segments: 8 }, scene);
     statue.scaling.y = 1.4;
     statue.position.set(47.5, 1.5, z);
-    solid(statue, mat.moss);
+    solid(statue, mat.stone);
   }
 
   // Shrine building with a pitched roof.
@@ -235,39 +235,6 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
     decor(c, mat.leaves);
   }
 
-  // Rebar Ivy: rust-red patches on the street-facing façades.
-  const ivy: [number, number, number, number, number][] = [
-    // x0, x1, wall z, y0, y1
-    [-50, -42, 4.95, 0, 9],
-    [-30, -18, 4.95, 0, 6],
-    [26, 36, 4.95, 2, 8],
-    [-40, -36, -4.95, 0, 7],
-    [-8, 2, -4.95, 0, 10],
-    [24, 30, -4.95, 1, 12],
-  ];
-  for (const [x0, x1, z, y0, y1] of ivy) {
-    const p = MeshBuilder.CreatePlane(`ivy${x0}${z}`, { width: x1 - x0, height: y1 - y0 }, scene);
-    p.position.set((x0 + x1) / 2, (y0 + y1) / 2, z + (z > 0 ? -0.02 : 0.02));
-    if (z < 0) p.rotation.y = Math.PI;
-    decor(p, mat.ivy, false);
-  }
-
-  // Lantern Wisteria hanging below the overpass deck.
-  for (let z = -3; z <= 4.5; z += 0.9) {
-    const strand = MeshBuilder.CreateBox(`wisteria${z}`, { width: 2.4, height: 1.6 + Math.abs(Math.sin(z * 3.7)) * 1.2, depth: 0.25 }, scene);
-    strand.position.set(-4.5, 5.6 - strand.getBoundingInfo().boundingBox.extendSize.y, z);
-    decor(strand, mat.wisteria);
-  }
-
-  // Shutter Ferns along the gutters.
-  for (let x = -50; x < 40; x += 7 + (Math.abs(x) % 5)) {
-    for (const z of [-4.6, 4.6]) {
-      const fern = MeshBuilder.CreateCylinder(`fern${x}${z}`, { diameterTop: 1.2, diameterBottom: 0.1, height: 0.7, tessellation: 6 }, scene);
-      fern.position.set(x, 0.35, z);
-      decor(fern, mat.fern, false);
-    }
-  }
-
   // Moss creeping out of the alley.
   for (let x = -32; x < 38; x += 6) {
     const moss = MeshBuilder.CreateGround(`alleyMoss${x}`, { width: 4, height: 3.5 }, scene);
@@ -277,19 +244,12 @@ function buildVegetation(scene: Scene, shadows: ShadowGenerator, mat: Materials)
 }
 
 function buildPuddle(scene: Scene, mat: Materials): void {
-  // Flooded pothole for the Sun Lotus.
+  // Flooded pothole; the Sun Lotus grows in it (see life/plants.ts).
   const water = MeshBuilder.CreateDisc("lotusPuddle", { radius: 2.2, tessellation: 24 }, scene);
   water.rotation.x = Math.PI / 2;
   water.position.set(25, 0.03, -1.5);
   water.material = mat.water;
   water.isPickable = false;
-  for (const [dx, dz] of [[0.6, 0.3], [-0.7, -0.5], [0.1, -1]]) {
-    const pad = MeshBuilder.CreateDisc(`lotusPad${dx}`, { radius: 0.45, tessellation: 12 }, scene);
-    pad.rotation.x = Math.PI / 2;
-    pad.position.set(25 + dx, 0.05, -1.5 + dz);
-    pad.material = mat.leaves;
-    pad.isPickable = false;
-  }
 }
 
 function buildRelayStation(scene: Scene, solid: SolidFn, mat: Materials): Mesh {
@@ -323,8 +283,6 @@ function createMaterials(scene: Scene) {
   glow.disableLighting = true;
   const water = make("water", 0.18, 0.28, 0.3, 0.6);
   water.alpha = 0.85;
-  const ivy = make("ivy", 0.45, 0.2, 0.12);
-  ivy.backFaceCulling = false;
   return {
     asphalt: make("asphalt", 0.22, 0.23, 0.23),
     dirt: make("dirt", 0.3, 0.33, 0.24),
@@ -340,11 +298,8 @@ function createMaterials(scene: Scene) {
     metal: make("metal", 0.35, 0.37, 0.4, 0.3),
     bark: make("bark", 0.3, 0.22, 0.15),
     leaves: make("leaves", 0.2, 0.45, 0.16),
-    fern: make("fern", 0.24, 0.52, 0.2),
     moss: make("moss", 0.28, 0.46, 0.18),
-    wisteria: make("wisteria", 0.65, 0.55, 0.85),
     alien: make("alien", 0.12, 0.13, 0.16, 0.6),
-    ivy,
     water,
     glow,
   };

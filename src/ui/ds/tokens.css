@@ -1,0 +1,91 @@
+/* Ko-Nia — generated from tokens.json */
+:root, [data-theme="terminal"] {
+  --void: #050c10;
+  --surface: #0b151b;
+  --surface-raised: #10202a;
+  --surface-selected: #0b2738;
+  --line: #1d313b;
+  --line-strong: #2f86ad;
+  --ink: #e4edf0;
+  --ink-muted: #9fb2ba;
+  --ink-faint: #7a8f98;
+  --signal: #5ec8da;
+  --signal-soft: #0c3442;
+  --on-signal: #04161c;
+  --glow: #a1f0f9;
+  --research: #76c690;
+  --caution: #ec836a;
+  --marker: #e2b38a;
+  --bloom: #b892f0;
+  --scrim: rgba(5, 12, 16, 0.72);
+  --mat-ceramic: #d8cfc6;
+  --mat-graphite: #635f5c;
+  --mat-joint: #40403f;
+  --mat-titanium: #c2b8aa;
+  --mat-solar: #a3a8c5;
+  --mat-accent-light: #f5fdfe;
+  --world-concrete: #72685d;
+  --world-concrete-wet: #4a443c;
+  --world-moss: #568653;
+  --world-mist: #bec0d1;
+  --world-sky: #acc3df;
+  --world-sun: #f3c27a;
+  --world-night: #1f3a52;
+  --focus-ring: var(--signal);
+  --glow-signal: 0 0 0 1px #2f86ad, 0 0 16px rgba(94, 200, 218, 0.35);
+  --panel: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+[data-theme="fieldsheet"] {
+  --void: #e2e0db;
+  --surface: #eeedea;
+  --surface-raised: #f8f7f5;
+  --surface-selected: #d9e7eb;
+  --line: #cfccc6;
+  --line-strong: #3f6f80;
+  --ink: #22272a;
+  --ink-muted: #4f575b;
+  --ink-faint: #5f666a;
+  --signal: #1d6b80;
+  --signal-soft: #d3e9ef;
+  --on-signal: #ffffff;
+  --glow: #5ec8da;
+  --research: #286a40;
+  --caution: #a63f26;
+  --marker: #94561e;
+  --bloom: #7246b4;
+  --scrim: rgba(226, 224, 219, 0.80);
+  --focus-ring: var(--signal);
+  --glow-signal: 0 0 0 1px #3f6f80;
+  --panel: 0 1px 2px rgba(34, 39, 42, 0.12);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-0: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 999px;
+  --opacity-disabled: 0.4;
+  --opacity-undiscovered: 0.25;
+  --font-display: "Lexend Exa", "Lexend", system-ui, sans-serif;
+  --font-heading: "Saira Semi Condensed", "Saira", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+.wordmark { font-family: var(--font-display); font-size: 64px; line-height: 1.0; font-weight: 200; letter-spacing: 0.18em; }
+.tagline { font-family: var(--font-display); font-size: 13px; line-height: 1.5; font-weight: 300; letter-spacing: 0.32em; }
+.panel-title { font-family: var(--font-heading); font-size: 34px; line-height: 38px; font-weight: 500; letter-spacing: 0.02em; }
+.heading { font-family: var(--font-heading); font-size: 20px; line-height: 24px; font-weight: 500; letter-spacing: 0.04em; }
+.menu { font-family: var(--font-heading); font-size: 18px; line-height: 24px; font-weight: 500; letter-spacing: 0.18em; }
+.label { font-family: var(--font-heading); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; }
+.body { font-family: var(--font-body); font-size: 15px; line-height: 22px; font-weight: 400; }
+.body-sm { font-family: var(--font-body); font-size: 13px; line-height: 18px; font-weight: 400; }
+.latin { font-family: var(--font-body); font-size: 15px; line-height: 20px; font-weight: 400; font-style: italic; }
+.caption { font-family: var(--font-body); font-size: 12px; line-height: 16px; font-weight: 400; }
+.data { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400; }
+.data-sm { font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: 0.06em; }

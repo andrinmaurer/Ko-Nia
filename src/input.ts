@@ -10,11 +10,18 @@ export class Input {
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (e) => {
+      // Keep Tab, Space and the arrow keys from moving focus or scrolling.
+      if (e.code === "Tab" || e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
       if (!this.down.has(e.code)) this.pressed.add(e.code);
       this.down.add(e.code);
     });
     window.addEventListener("keyup", (e) => this.down.delete(e.code));
     window.addEventListener("blur", () => this.down.clear());
+    // Mouse buttons are reported as "Mouse0" (left) and "Mouse2" (right).
+    document.addEventListener("mousedown", (e) => {
+      if (this.locked) this.pressed.add(`Mouse${e.button}`);
+    });
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
     document.addEventListener("mousemove", (e) => {
       if (!this.locked) return;
       this.lookX += e.movementX;
