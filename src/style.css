@@ -707,3 +707,17 @@ button {
   font: 12px/1.5 var(--font-mono);
   resize: none;
 }
+
+.upgrade-panel { position: fixed; inset: 5vh 5vw; z-index: 50; overflow: auto; padding: 28px; color: #d7ecee; background: rgba(8, 21, 25, .97); border: 1px solid #507177; border-radius: 8px; font: 14px/1.6 monospace; }
+.upgrade-panel header { display: flex; justify-content: space-between; gap: 20px; align-items: center; }
+.upgrade-panel h1 { font-size: 24px; } .upgrade-panel h2 { font-size: 17px; }
+.upgrade-panel button { color: #9ce9ed; background: #143337; border: 1px solid #58848a; padding: 10px 16px; cursor: pointer; }
+.upgrade-panel button:disabled { opacity: .45; cursor: default; }
+.upgrade-panel button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.upgrade-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; }
+.upgrade-grid article { padding: 18px; border: 1px solid #36575d; background: #10282c; }
+.upgrade-requirement { color: #a7c9cd; min-height: 44px; }
+.upgrade-panel details { border-top: 1px solid #36575d; padding: 12px 0; }
+.exploration-map { width: 100%; min-height: 280px; background: #081216; border: 1px solid #36575d; }
+@media (max-width: 600px) { .upgrade-panel { inset: 2vh 2vw; padding: 16px; } }
+.upgrade-panel.hidden { display: none; }

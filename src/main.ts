@@ -18,7 +18,7 @@ import { clearSave, Logbook, readSave, writeSave } from "./discovery/logbook";
 import { Scanner } from "./discovery/scanner";
 import { CameraRig } from "./player/cameraRig";
 import { Robot } from "./player/robot";
-import { MAX_ENERGY, MAX_HEALTH, RobotStatus } from "./player/status";
+import { RobotStatus } from "./player/status";
 import { Hud } from "./ui/hud";
 import { icon } from "./ui/icons";
 import { LogbookView } from "./ui/logbookView";
@@ -34,7 +34,11 @@ import { buildTempleHill } from "./world/templeHill";
 import { Sky } from "./world/sky";
 import { Wind } from "./world/wind";
 
-type State = "start" | "playing" | "paused" | "logbook" | "transition";
+import { Upgrades, TRANSMISSIONS, type UpgradeId } from "./game/upgrades";
+import { UpgradesView } from "./ui/upgradesView";
+import { MapView } from "./ui/mapView";
+
+type State = "start" | "playing" | "paused" | "logbook" | "upgrades" | "map" | "transition";
 
 /** Spore cloud: how long the scanner stays offline, and the energy it costs. */
 const SPORE_SECONDS = 20;
@@ -83,6 +87,9 @@ const time = new DayCycle();
 const wind = new Wind();
 const status = new RobotStatus();
 const logbook = new Logbook();
+const saved = readSave();
+const upgrades = new Upgrades(logbook, saved?.upgrades, !!saved && !saved.upgrades);
+status.configure(upgrades.has("battery"), upgrades.has("durability"), upgrades.has("solar"));
 const relays = [
   new RelayStation("street", world.relayStation, world.spawn, world.spawnYaw, scene.getMaterialByName("glow") as StandardMaterial | null),
   new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
@@ -97,18 +104,19 @@ const ctx: GameContext = {
   time,
   wind,
   logbook,
+  upgrades,
   robotSpeed: 0,
   caption: (text, seconds) => hud.caption(text, seconds),
   hitRobot: (amount, push) => {
     status.damage(amount);
     robot.push(push);
-    hud.setHealth(status.health, MAX_HEALTH);
+    hud.setHealth(status.health, status.maxHealth);
     hud.notice(status.disabled ? "" : "Damage taken. Minor damage repairs itself slowly.");
   },
   sensorsJammed: 0,
   sporeHit: () => {
-    ctx.sensorsJammed = SPORE_SECONDS;
-    status.energy = Math.max(0, status.energy - SPORE_ENERGY);
+    ctx.sensorsJammed = SPORE_SECONDS * (upgrades.has("filter") ? .25 : 1);
+    status.energy = Math.max(0, status.energy - SPORE_ENERGY * (upgrades.has("filter") ? .25 : 1));
     if (scanner.lensOn) scanner.toggleLens();
     hud.notice("Spores! Sensors clogged. Scanner offline until they clear.");
   },
@@ -137,10 +145,25 @@ const quality = new QualityController(engine, shadows, glowLayer, detail);
 
 let state: State = "start";
 const logbookView = new LogbookView(logbook, time, closeLogbook);
+const connectedRelay = () => relays.find((r) => r.activated && r.inRange(robot.position));
+const upgradesView = new UpgradesView(upgrades, logbook, () => !!connectedRelay(), installUpgrade, () => { const relay = connectedRelay(); if (relay) useRelay(relay); }, closePanel);
+const mapView = new MapView(upgrades, logbook, robot, relays, save, closePanel);
+
+function installUpgrade(id: UpgradeId): void {
+  if (!upgrades.install(id, !!connectedRelay())) return;
+  status.configure(upgrades.has("battery"), upgrades.has("durability"), upgrades.has("solar"));
+  hud.notice("Upgrade installed."); save();
+}
+function openPanel(panel: "upgrades" | "map"): void {
+  if (panel === "map" && !upgrades.has("map")) { hud.notice("Install the mapping subsystem at a relay after uploading 5% research."); return; }
+  state = panel; (panel === "map" ? mapView : upgradesView).open(); input.releaseLock(); startScreen.classList.add("hidden");
+}
+function closePanel(): void {
+  upgradesView.hide(); mapView.hide(); state = "paused"; renderMenu("paused"); input.requestLock();
+}
 
 // --- Save / load -------------------------------------------------------------
 
-const saved = readSave();
 if (saved) {
   logbook.load(saved.logbook);
   for (const r of relays) r.setActivated(saved.relays ? saved.relays.includes(r.id) : r.id === "street" && saved.relayActivated);
@@ -198,6 +221,7 @@ function save(): void {
   writeSave({
     version: 1,
     logbook: logbook.toJSON(),
+    upgrades: upgrades.toJSON(),
     relayActivated: relays[0].activated,
     relays: relays.filter((r) => r.activated).map((r) => r.id),
     homeRelay: homeRelay.id,
@@ -220,15 +244,15 @@ function updateTutorial(dt: number): void {
   } else if (!tutorial.logbookOpened) {
     hud.hint("<b>Tab</b> opens the Logbook");
   } else {
-    hud.hint(undefined);
-    tutorial.active = false;
+    hud.hint("<b>E</b> activates a nearby relay · <b>U</b> opens upgrades");
+    if (tutorial.elapsed > 45) { hud.hint(undefined); tutorial.active = false; }
   }
 }
 
 // --- State changes -----------------------------------------------------------
 
 canvas.addEventListener("click", () => {
-  if (!input.locked && state !== "logbook") input.requestLock();
+  if (!input.locked && !["logbook", "upgrades", "map"].includes(state)) input.requestLock();
 });
 document.addEventListener(LOCK_CHANGE, () => {
   if (input.locked) {
@@ -241,7 +265,7 @@ document.addEventListener(LOCK_CHANGE, () => {
     state = "paused";
     renderMenu("paused");
   }
-  startScreen.classList.toggle("hidden", input.locked || state === "logbook");
+  startScreen.classList.toggle("hidden", input.locked || ["logbook", "upgrades", "map"].includes(state));
 });
 
 function openLogbook(): void {
@@ -282,8 +306,10 @@ function useRelay(relay: RelayStation): void {
   const first = !relay.activated;
   relay.setActivated(true);
   homeRelay = relay;
+  const received = upgrades.upload();
+  if (received.length) hud.caption(TRANSMISSIONS[received[received.length - 1] / 5 - 1], 10);
   status.restore();
-  hud.setHealth(status.health, MAX_HEALTH);
+  hud.setHealth(status.health, status.maxHealth);
   save();
   if (first) hud.toast("Relay Station activated", "Respawn point set", { kind: "system", field: "Progress saved" });
   else hud.toast("Relay Station", "Recharged and repaired", { kind: "system", field: "Progress saved" });
@@ -306,7 +332,7 @@ function respawn(): void {
     rig.yaw = homeRelay.spawnYaw;
     updateRegion();
     status.restore();
-    hud.setHealth(status.health, MAX_HEALTH);
+    hud.setHealth(status.health, status.maxHealth);
     hud.toast("Unit disabled", "Restored at Relay Station", { kind: "system", field: "Your discoveries are safe." });
   });
 }
@@ -328,13 +354,15 @@ scene.onBeforeRenderObservable.add(() => {
 function frame(dt: number): void {
   hud.update(dt);
 
-  if (state === "logbook") {
+  if (state === "upgrades" || state === "map") {
+    if (input.wasPressed("Escape") || input.wasPressed(state === "map" ? "KeyM" : "KeyU")) closePanel();
+  } else if (state === "logbook") {
     if (input.wasPressed("Tab") || input.wasPressed("Escape")) closeLogbook();
   } else if (state === "playing") {
     updateGame(dt);
   }
   input.endFrame();
-  atmosphere.apply(time);
+  atmosphere.apply(time, scanner.lensOn && scanner.mode === "night");
 
   fpsTimer -= dt;
   if (fpsTimer <= 0) {
@@ -345,6 +373,13 @@ function frame(dt: number): void {
 
 function updateGame(dt: number): void {
   playtest.update(dt);
+  upgrades.explore(robot.position.x, robot.position.z);
+  if (input.wasPressed("KeyU")) { openPanel("upgrades"); return; }
+  if (input.wasPressed("KeyM")) { openPanel("map"); return; }
+  if (input.wasPressed("KeyG") && upgrades.has("grapple")) {
+    if (status.energy >= 10 && robot.beginGrapple(rig.camera.getForwardRay(35))) status.trySpend(10);
+    else hud.notice("Aim at an exposed ledge within 35 metres. Grappling needs 10 energy.");
+  }
   if (input.wasPressed("KeyV")) rig.toggleMode();
   if (input.wasPressed("Tab")) {
     openLogbook();
@@ -366,7 +401,11 @@ function updateGame(dt: number): void {
   wind.update(dt);
 
   const moved = robot.update(dt, input, rig.yaw, rig.mode === "first", {
-    canSprint: true,
+    canSprint: upgrades.has("sprint"),
+    canClimb: upgrades.has("climb"),
+    canHover: upgrades.has("hover"),
+    canGlide: upgrades.has("glide"),
+    spendEnergy: (amount) => status.trySpend(amount),
     depleted: status.depleted,
   });
   ctx.robotSpeed = moved / dt;
@@ -387,8 +426,9 @@ function updateGame(dt: number): void {
       "Relay Station",
       relay.activated
         ? [
-            { key: "E", icon: "save", label: "Save and recharge", sub: `Last save: ${minutes < 1 ? "just now" : `${minutes} min ago`} · energy ${Math.round((status.energy / MAX_ENERGY) * 100)}%`, primary: true },
+            { key: "E", icon: "save", label: "Save and recharge", sub: `Last save: ${minutes < 1 ? "just now" : `${minutes} min ago`} · energy ${Math.round((status.energy / status.capacity) * 100)}%`, primary: true },
             { key: "R", icon: restUntil === "morning" ? "sun" : "moon", label: `Rest until ${restUntil}`, sub: "Time passes while the unit recharges" },
+            { key: "U", icon: "zap", label: "Upload and upgrade", sub: `${Math.floor(upgrades.uploaded)}% research uploaded` },
             { key: "Tab", icon: "book", label: "Open Logbook", sub: `${Math.round(logbook.completion() * 100)}% complete` },
           ]
         : [{ key: "E", icon: "zap", label: "Activate", sub: "Sets your respawn point and saves", primary: true }],
@@ -401,8 +441,8 @@ function updateGame(dt: number): void {
 
   if (status.disabled) respawn();
 
-  hud.setEnergy(status.energy, MAX_ENERGY);
-  hud.setHealth(status.health, MAX_HEALTH);
+  hud.setEnergy(status.energy, status.capacity);
+  hud.setHealth(status.health, status.maxHealth);
   const nearest = relays.reduce((a, b) => (Vector3.Distance(a.position, robot.position) <= Vector3.Distance(b.position, robot.position) ? a : b));
   const toRelay = nearest.position.subtract(robot.position);
   hud.setCompass(rig.yaw, robot.position.y, Math.atan2(toRelay.x, toRelay.z), Math.hypot(toRelay.x, toRelay.z));
@@ -446,7 +486,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, scanner, relay: relays[0], relays, regions, temple, hud, life, scannables, ctx, playtest, quality,
+  robot, rig, scene, input, time, wind, status, logbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

@@ -86,7 +86,7 @@ export class Atmosphere {
     ip.colorCurvesEnabled = true;
   }
 
-  apply(time: DayCycle): void {
+  apply(time: DayCycle, nightVision = false): void {
     const m = moodAt(time.hours);
     const day = time.daylight;
     // The sun drives shadows by day, the moon by night; swap while both are faint.
@@ -96,12 +96,12 @@ export class Atmosphere {
     this.sun.intensity = m.sunIntensity;
     this.ambient.diffuse = m.sky;
     this.ambient.groundColor = m.bounce;
-    this.ambient.intensity = m.skyIntensity;
+    this.ambient.intensity = m.skyIntensity * (nightVision ? 2.2 : 1);
     this.scene.fogColor = m.fog;
     this.scene.fogDensity = m.fogDensity;
     this.scene.clearColor = new Color4(m.horizon.r, m.horizon.g, m.horizon.b, 1);
     this.scene.ambientColor = m.bounce;
-    this.scene.imageProcessingConfiguration.exposure = m.exposure;
+    this.scene.imageProcessingConfiguration.exposure = m.exposure * (nightVision ? 1.8 : 1);
     const toSun = this.sun.direction.scale(-1);
     const glow = day > 0.05 ? m.sun.scale(0.9) : m.sun.scale(0.12);
     // Puddles mirror the sky's colour.

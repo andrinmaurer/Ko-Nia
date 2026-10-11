@@ -1,6 +1,7 @@
 import { ENTRIES, ENTRY_BY_ID, stepsFor } from "./entries";
 
-export type ScanMode = "visual" | "bio";
+import type { UpgradeSave } from "../game/upgrades";
+export type ScanMode = "visual" | "bio" | "audio" | "night" | "thermal" | "genetic" | "radiation";
 
 export interface EntryProgress {
   discovered: boolean;
@@ -25,6 +26,7 @@ const SAVE_KEY = "konia.save.v1";
 
 export interface SaveData {
   version: 1;
+  upgrades?: UpgradeSave;
   logbook: Record<string, EntryProgress>;
   /** Shrine Street's station; kept for saves from before Temple Hill. */
   relayActivated: boolean;
@@ -104,7 +106,7 @@ export class Logbook {
     }
     p.scanHours.push(when.hour);
     if (stepsFor(def) === 3) {
-      if (mode === "bio" && !p.bio) {
+      if ((mode === "bio" || mode === "genetic") && !p.bio) {
         p.bio = true;
         learned.push("ancestry");
       }
