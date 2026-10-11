@@ -8,6 +8,12 @@ import type { AbstractMesh, Engine, GlowLayer, ShadowGenerator } from "../babylo
 interface Level {
   /** Render resolution as a fraction of the screen's device pixels (capped). */
   pixelRatio: number;
+  /**
+   * Most pixels rendered per frame, in millions. Keeps big Retina windows from
+   * costing far more than small ones (Safari at 1680x837 @2x fell to ~37 FPS
+   * with the ratio cap alone).
+   */
+  megapixels: number;
   shadowMap: number;
   glow: boolean;
   /** Fern beds, giant leaves and leaf shells: lots of cut-out overdraw. */
@@ -15,11 +21,11 @@ interface Level {
 }
 
 const LEVELS: Level[] = [
-  { pixelRatio: 1.5, shadowMap: 2048, glow: true, detail: true },
-  { pixelRatio: 1.2, shadowMap: 2048, glow: true, detail: true },
-  { pixelRatio: 1, shadowMap: 1024, glow: true, detail: false },
-  { pixelRatio: 0.85, shadowMap: 1024, glow: false, detail: false },
-  { pixelRatio: 0.7, shadowMap: 512, glow: false, detail: false },
+  { pixelRatio: 1.5, megapixels: 2.2, shadowMap: 2048, glow: true, detail: true },
+  { pixelRatio: 1.2, megapixels: 1.6, shadowMap: 2048, glow: true, detail: true },
+  { pixelRatio: 1, megapixels: 1.2, shadowMap: 1024, glow: true, detail: false },
+  { pixelRatio: 0.85, megapixels: 0.9, shadowMap: 1024, glow: false, detail: false },
+  { pixelRatio: 0.7, megapixels: 0.6, shadowMap: 512, glow: false, detail: false },
 ];
 
 const TARGET_FPS = 30;
@@ -39,6 +45,8 @@ export class QualityController {
     private readonly detail: AbstractMesh[] = [],
   ) {
     this.apply();
+    // The pixel budget depends on the window size.
+    window.addEventListener("resize", () => this.applyResolution());
   }
 
   get label(): string {
@@ -74,10 +82,17 @@ export class QualityController {
     }
   }
 
+  private applyResolution(): void {
+    const l = LEVELS[this.level];
+    const cssPixels = Math.max(1, window.innerWidth * window.innerHeight);
+    const budget = Math.sqrt((l.megapixels * 1e6) / cssPixels);
+    const ratio = Math.min(window.devicePixelRatio || 1, l.pixelRatio, budget);
+    this.engine.setHardwareScalingLevel(1 / ratio);
+  }
+
   private apply(): void {
     const l = LEVELS[this.level];
-    const ratio = Math.min(window.devicePixelRatio || 1, l.pixelRatio);
-    this.engine.setHardwareScalingLevel(1 / ratio);
+    this.applyResolution();
     const map = this.shadows.getShadowMap();
     if (map && map.getSize().width !== l.shadowMap) map.resize(l.shadowMap);
     this.glow.isEnabled = l.glow;

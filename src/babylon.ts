@@ -57,3 +57,6 @@ import "@babylonjs/core/Rendering/outlineRenderer";
 import "@babylonjs/core/Meshes/thinInstanceMesh";
 import "@babylonjs/core/Shaders/default.fragment";
 import "@babylonjs/core/Shaders/default.vertex";
+// Logbook photos: the screenshot helper flips the image through a pass post-process.
+import "@babylonjs/core/Shaders/postprocess.vertex";
+import "@babylonjs/core/Shaders/pass.fragment";

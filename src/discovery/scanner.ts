@@ -145,7 +145,8 @@ export class Scanner {
         0.75,
       );
       this.ctx.logbook.setImage(id, image);
-    } catch {
+    } catch (e) {
+      console.warn("logbook photo failed", e);
       // A missing photo is not worth interrupting play for.
     }
   }
