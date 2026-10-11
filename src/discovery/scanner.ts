@@ -1,7 +1,6 @@
 import {
   AbstractMesh,
   Color3,
-  CreateScreenshotUsingRenderTargetAsync,
   Ray,
   Vector3,
   type Camera,
@@ -107,8 +106,10 @@ export class Scanner {
     const newLocation = logbook.discoverLocation(locationId, when);
 
     this.hud.shutter();
-    if (learned.includes("created")) void this.capture(def.id);
-    if (newLocation) void this.capture(locationId);
+    const photos: string[] = [];
+    if (learned.includes("created")) photos.push(def.id);
+    if (newLocation) photos.push(locationId);
+    if (photos.length) this.capture(photos);
     this.announce(def, learned);
     if (newLocation) this.hud.toast("Location recorded", ENTRY_BY_ID.get(locationId)!.name, { kind: "place" });
     this.onScanned();
@@ -128,27 +129,28 @@ export class Scanner {
     }
   }
 
-  private async capture(id: string): Promise<void> {
-    try {
-      const engine = this.ctx.scene.getEngine();
-      const image = await CreateScreenshotUsingRenderTargetAsync(
-        engine,
-        this.camera,
-        { width: 320, height: 180 },
-        "image/jpeg",
-        1,
-        false,
-        undefined,
-        false,
-        false,
-        false,
-        0.75,
-      );
-      this.ctx.logbook.setImage(id, image);
-    } catch (e) {
-      console.warn("logbook photo failed", e);
-      // A missing photo is not worth interrupting play for.
-    }
+  private capture(ids: string[]): void {
+    const engine = this.ctx.scene.getEngine();
+    // Read the finished frame while its buffer is valid. Render-target screenshots
+    // resize and re-render the live scene; overlapping object/location captures
+    // can strand the engine at thumbnail size and stop the render loop.
+    engine.onEndFrameObservable.addOnce(() => {
+      try {
+        const source = engine.getRenderingCanvas();
+        if (!source) return;
+        const thumbnail = document.createElement("canvas");
+        thumbnail.width = 320;
+        thumbnail.height = 180;
+        const context = thumbnail.getContext("2d");
+        if (!context) return;
+        context.drawImage(source, 0, 0, thumbnail.width, thumbnail.height);
+        const image = thumbnail.toDataURL("image/jpeg", 0.75);
+        for (const id of ids) this.ctx.logbook.setImage(id, image);
+      } catch (e) {
+        console.warn("logbook photo failed", e);
+        // A missing photo is not worth interrupting play for.
+      }
+    });
   }
 
   private findTarget(): Target | undefined {
