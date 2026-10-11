@@ -134,15 +134,17 @@ export class Scanner {
       const image = await CreateScreenshotUsingRenderTargetAsync(
         engine,
         this.camera,
-        { width: 320, height: 180 },
+        // Big enough to stay sharp in the Logbook's main panel on a Retina screen,
+        // small enough that ~25 photos still fit in the browser's save storage.
+        { width: 800, height: 450 },
         "image/jpeg",
-        1,
-        false,
+        4,
+        true,
         undefined,
         false,
         false,
         false,
-        0.75,
+        0.8,
       );
       this.ctx.logbook.setImage(id, image);
     } catch (e) {
