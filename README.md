@@ -83,7 +83,7 @@ The [discoverable asset blockout and visual inventory](docs/art/discoverables/di
 
 ## Logbook photographs
 
-The [36 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street and Temple Hill. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.
+The [52 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street, Temple Hill and Flooded Arcade. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.
 
 ## Upgrade progression
 

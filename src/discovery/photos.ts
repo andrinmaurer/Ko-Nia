@@ -36,6 +36,22 @@ const PHOTOS: Record<string, string> = {
   "art-scroll-shelf": "art-scroll-shelf.webp",
   "art-wish-wall": "art-wish-wall.webp",
   "origin-mark": "origin-mark.webp",
+  "glasswort-reed": "glasswort-reed.webp",
+  "gutter-lily": "gutter-lily.webp",
+  "shopfront-moss": "shopfront-moss.webp",
+  "wader-heron": "wader-heron.webp",
+  "mudskipper-shoal": "mudskipper-shoal.webp",
+  "snapping-eel": "snapping-eel.webp",
+  "loc-flooded-arcade": "loc-flooded-arcade.webp",
+  "loc-arcade-entrance": "loc-arcade-entrance.webp",
+  "loc-clock-crossing": "loc-clock-crossing.webp",
+  "loc-arcade-roof": "loc-arcade-roof.webp",
+  "art-shop-shutter": "art-shop-shutter.webp",
+  "art-arcade-clock": "art-arcade-clock.webp",
+  "art-bicycle-rack": "art-bicycle-rack.webp",
+  "art-toy-boat": "art-toy-boat.webp",
+  "art-flood-line": "art-flood-line.webp",
+  "origin-tracks": "origin-tracks.webp",
 };
 
 export function logbookPhoto(id: string, discovered: boolean): string | undefined {

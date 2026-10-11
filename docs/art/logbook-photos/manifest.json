@@ -358,5 +358,165 @@
     "height": 640,
     "bytes": 164268,
     "reviewed": true
+  },
+  {
+    "id": "glasswort-reed",
+    "entry": "Glasswort Reed",
+    "image": "public/logbook/glasswort-reed.webp",
+    "master": "docs/art/logbook-photos/masters/37-glasswort-reed.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 218412,
+    "reviewed": true
+  },
+  {
+    "id": "gutter-lily",
+    "entry": "Gutter Lily",
+    "image": "public/logbook/gutter-lily.webp",
+    "master": "docs/art/logbook-photos/masters/38-gutter-lily.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 165030,
+    "reviewed": true
+  },
+  {
+    "id": "shopfront-moss",
+    "entry": "Shopfront Moss",
+    "image": "public/logbook/shopfront-moss.webp",
+    "master": "docs/art/logbook-photos/masters/39-shopfront-moss.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 201796,
+    "reviewed": true
+  },
+  {
+    "id": "wader-heron",
+    "entry": "Wader Heron",
+    "image": "public/logbook/wader-heron.webp",
+    "master": "docs/art/logbook-photos/masters/40-wader-heron.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 214012,
+    "reviewed": true
+  },
+  {
+    "id": "mudskipper-shoal",
+    "entry": "Mudskipper Shoal",
+    "image": "public/logbook/mudskipper-shoal.webp",
+    "master": "docs/art/logbook-photos/masters/41-mudskipper-shoal.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 168916,
+    "reviewed": true
+  },
+  {
+    "id": "snapping-eel",
+    "entry": "Snapping Eel",
+    "image": "public/logbook/snapping-eel.webp",
+    "master": "docs/art/logbook-photos/masters/42-snapping-eel.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 149026,
+    "reviewed": true
+  },
+  {
+    "id": "loc-flooded-arcade",
+    "entry": "Flooded Arcade",
+    "image": "public/logbook/loc-flooded-arcade.webp",
+    "master": "docs/art/logbook-photos/masters/43-loc-flooded-arcade.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 205992,
+    "reviewed": true
+  },
+  {
+    "id": "loc-arcade-entrance",
+    "entry": "Arcade Entrance",
+    "image": "public/logbook/loc-arcade-entrance.webp",
+    "master": "docs/art/logbook-photos/masters/44-loc-arcade-entrance-v2.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 226734,
+    "reviewed": true
+  },
+  {
+    "id": "loc-clock-crossing",
+    "entry": "Clock Crossing",
+    "image": "public/logbook/loc-clock-crossing.webp",
+    "master": "docs/art/logbook-photos/masters/45-loc-clock-crossing-v2.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 211684,
+    "reviewed": true
+  },
+  {
+    "id": "loc-arcade-roof",
+    "entry": "Arcade Roof",
+    "image": "public/logbook/loc-arcade-roof.webp",
+    "master": "docs/art/logbook-photos/masters/46-loc-arcade-roof-v2.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 255938,
+    "reviewed": true
+  },
+  {
+    "id": "art-shop-shutter",
+    "entry": "Shop Shutter",
+    "image": "public/logbook/art-shop-shutter.webp",
+    "master": "docs/art/logbook-photos/masters/47-art-shop-shutter.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 176282,
+    "reviewed": true
+  },
+  {
+    "id": "art-arcade-clock",
+    "entry": "Arcade Clock",
+    "image": "public/logbook/art-arcade-clock.webp",
+    "master": "docs/art/logbook-photos/masters/48-art-arcade-clock.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 185740,
+    "reviewed": true
+  },
+  {
+    "id": "art-bicycle-rack",
+    "entry": "Bicycle Rack",
+    "image": "public/logbook/art-bicycle-rack.webp",
+    "master": "docs/art/logbook-photos/masters/49-art-bicycle-rack.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 241764,
+    "reviewed": true
+  },
+  {
+    "id": "art-toy-boat",
+    "entry": "Toy Boat",
+    "image": "public/logbook/art-toy-boat.webp",
+    "master": "docs/art/logbook-photos/masters/50-art-toy-boat.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 168666,
+    "reviewed": true
+  },
+  {
+    "id": "art-flood-line",
+    "entry": "Flood Line",
+    "image": "public/logbook/art-flood-line.webp",
+    "master": "docs/art/logbook-photos/masters/51-art-flood-line.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 194734,
+    "reviewed": true
+  },
+  {
+    "id": "origin-tracks",
+    "entry": "Predecessor's Tracks",
+    "image": "public/logbook/origin-tracks.webp",
+    "master": "docs/art/logbook-photos/masters/52-origin-tracks.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 189988,
+    "reviewed": true
   }
 ]
