@@ -6,6 +6,7 @@ import {
   Mesh,
   Scene,
   ShadowGenerator,
+  StandardMaterial,
   Vector3,
 } from "./babylon";
 import type { Scannable, GameContext, LifeForm } from "./game/context";
@@ -24,12 +25,20 @@ import { LogbookView } from "./ui/logbookView";
 import { Atmosphere } from "./world/atmosphere";
 import { createAnimals, createStaticDiscoveries } from "./world/life/animals";
 import { createPlants } from "./world/life/plants";
+import { buildCedarSilhouette, createTempleDiscoveries, createTempleLife } from "./world/life/templeLife";
+import { Regions } from "./world/regions";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
+import { buildStairLane, laneRegionAt } from "./world/stairLane";
+import { buildTempleHill } from "./world/templeHill";
 import { Sky } from "./world/sky";
 import { Wind } from "./world/wind";
 
 type State = "start" | "playing" | "paused" | "logbook" | "transition";
+
+/** Spore cloud: how long the scanner stays offline, and the energy it costs. */
+const SPORE_SECONDS = 20;
+const SPORE_ENERGY = 40;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const startScreen = document.getElementById("start") as HTMLDivElement;
@@ -52,7 +61,15 @@ const shadows = new ShadowGenerator(2048, sun);
 shadows.usePercentageCloserFiltering = true;
 shadows.bias = 0.002;
 
-const world = buildShrineStreet(scene, shadows);
+// Two blocks, drawn one at a time (see world/regions.ts), joined by the always-drawn stair lane.
+const regions = new Regions(scene, shadows, "street");
+const world = regions.capture("street", () => {
+  const street = buildShrineStreet(scene, shadows);
+  buildCedarSilhouette(scene);
+  return street;
+});
+buildStairLane(scene, shadows);
+const temple = regions.capture("temple", () => buildTempleHill(scene, shadows));
 const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -66,7 +83,12 @@ const time = new DayCycle();
 const wind = new Wind();
 const status = new RobotStatus();
 const logbook = new Logbook();
-const relay = new RelayStation(scene, world.relayStation, world.spawn, world.spawnYaw);
+const relays = [
+  new RelayStation("street", world.relayStation, world.spawn, world.spawnYaw, scene.getMaterialByName("glow") as StandardMaterial | null),
+  new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
+];
+/** Where the robot respawns: the Relay Station it used last. */
+let homeRelay = relays[0];
 
 const ctx: GameContext = {
   scene,
@@ -83,10 +105,24 @@ const ctx: GameContext = {
     hud.setHealth(status.health, MAX_HEALTH);
     hud.notice(status.disabled ? "" : "Damage taken. Minor damage repairs itself slowly.");
   },
+  sensorsJammed: 0,
+  sporeHit: () => {
+    ctx.sensorsJammed = SPORE_SECONDS;
+    status.energy = Math.max(0, status.energy - SPORE_ENERGY);
+    if (scanner.lensOn) scanner.toggleLens();
+    hud.notice("Spores! Sensors clogged. Scanner offline until they clear.");
+  },
 };
 
-const life: LifeForm[] = [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)];
-const scannables: Scannable[] = [...life.flatMap((l) => l.scannables), ...createStaticDiscoveries(ctx)];
+const life: LifeForm[] = [
+  ...regions.capture("street", () => [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)]),
+  ...regions.capture("temple", () => createTempleLife(ctx, shadows)),
+];
+const scannables: Scannable[] = [
+  ...life.flatMap((l) => l.scannables),
+  ...regions.capture("street", () => createStaticDiscoveries(ctx)),
+  ...regions.capture("temple", () => createTempleDiscoveries(ctx, temple)),
+];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
 // --- Rendering cost ------------------------------------------------------------
@@ -107,9 +143,14 @@ const logbookView = new LogbookView(logbook, time, closeLogbook);
 const saved = readSave();
 if (saved) {
   logbook.load(saved.logbook);
-  relay.setActivated(saved.relayActivated);
+  for (const r of relays) r.setActivated(saved.relays ? saved.relays.includes(r.id) : r.id === "street" && saved.relayActivated);
+  homeRelay = relays.find((r) => r.id === saved.homeRelay && r.activated) ?? relays[0];
   time.day = saved.day;
   time.hours = saved.hours;
+  // Continue where the robot last saved.
+  robot.teleport(homeRelay.spawn, homeRelay.spawnYaw);
+  rig.yaw = homeRelay.spawnYaw;
+  updateRegion();
 }
 const playtest = new Playtest(logbook, !saved);
 renderMenu(saved ? "continue" : "start");
@@ -154,7 +195,15 @@ let lastSave = performance.now();
 
 function save(): void {
   lastSave = performance.now();
-  writeSave({ version: 1, logbook: logbook.toJSON(), relayActivated: relay.activated, day: time.day, hours: time.hours });
+  writeSave({
+    version: 1,
+    logbook: logbook.toJSON(),
+    relayActivated: relays[0].activated,
+    relays: relays.filter((r) => r.activated).map((r) => r.id),
+    homeRelay: homeRelay.id,
+    day: time.day,
+    hours: time.hours,
+  });
 }
 
 // --- Onboarding hints (only for a new game) -----------------------------------
@@ -229,9 +278,10 @@ async function transition(midpoint: () => void): Promise<void> {
   if (!input.locked && state === "playing") state = "paused";
 }
 
-function useRelay(): void {
+function useRelay(relay: RelayStation): void {
   const first = !relay.activated;
   relay.setActivated(true);
+  homeRelay = relay;
   status.restore();
   hud.setHealth(status.health, MAX_HEALTH);
   save();
@@ -252,8 +302,9 @@ function restAtRelay(): void {
 function respawn(): void {
   playtest.disabled();
   void transition(() => {
-    robot.teleport(relay.spawn, relay.spawnYaw);
-    rig.yaw = relay.spawnYaw;
+    robot.teleport(homeRelay.spawn, homeRelay.spawnYaw);
+    rig.yaw = homeRelay.spawnYaw;
+    updateRegion();
     status.restore();
     hud.setHealth(status.health, MAX_HEALTH);
     hud.toast("Unit disabled", "Restored at Relay Station", { kind: "system", field: "Your discoveries are safe." });
@@ -324,8 +375,12 @@ function updateGame(dt: number): void {
   for (const l of life) l.update(dt);
   scanner.update(dt);
 
+  updateRegion();
+  updateSpores(dt);
+
   // Relay Station interaction.
-  if (relay.inRange(robot.position)) {
+  const relay = relays.find((r) => r.inRange(robot.position));
+  if (relay) {
     const restUntil = time.isNight || time.hours >= 17 ? "morning" : "nightfall";
     const minutes = Math.round((performance.now() - lastSave) / 60000);
     hud.console(
@@ -338,7 +393,7 @@ function updateGame(dt: number): void {
           ]
         : [{ key: "E", icon: "zap", label: "Activate", sub: "Sets your respawn point and saves", primary: true }],
     );
-    if (input.wasPressed("KeyE")) useRelay();
+    if (input.wasPressed("KeyE")) useRelay(relay);
     if (input.wasPressed("KeyR") && relay.activated) restAtRelay();
   } else {
     hud.console(undefined);
@@ -348,7 +403,8 @@ function updateGame(dt: number): void {
 
   hud.setEnergy(status.energy, MAX_ENERGY);
   hud.setHealth(status.health, MAX_HEALTH);
-  const toRelay = relay.position.subtract(robot.position);
+  const nearest = relays.reduce((a, b) => (Vector3.Distance(a.position, robot.position) <= Vector3.Distance(b.position, robot.position) ? a : b));
+  const toRelay = nearest.position.subtract(robot.position);
   hud.setCompass(rig.yaw, robot.position.y, Math.atan2(toRelay.x, toRelay.z), Math.hypot(toRelay.x, toRelay.z));
   if (status.depleted) hud.notice("Energy depleted. Recharge in sunlight or at the Relay Station.");
 
@@ -358,6 +414,22 @@ function updateGame(dt: number): void {
     autosaveTimer = 30;
     save();
   }
+}
+
+/** Shows the block the robot is in; the swap happens inside the covered stair lane. */
+function updateRegion(): void {
+  const want = laneRegionAt(robot.position, regions.active);
+  if (want) regions.activate(want);
+}
+
+let sporeHaze = 0;
+
+function updateSpores(dt: number): void {
+  ctx.sensorsJammed = Math.max(0, ctx.sensorsJammed - dt);
+  // Thick at first, clearing over the last few seconds.
+  const target = ctx.sensorsJammed > 0 ? Math.min(0.85, 0.25 + ctx.sensorsJammed / SPORE_SECONDS) : 0;
+  sporeHaze += (target - sporeHaze) * Math.min(1, dt * (target > sporeHaze ? 6 : 1.5));
+  hud.setSpores(sporeHaze);
 }
 
 engine.runRenderLoop(() => scene.render());
@@ -374,7 +446,7 @@ declare global {
   }
 }
 window.__konia = {
-  robot, rig, scene, input, time, wind, status, logbook, scanner, relay, hud, life, scannables, ctx, playtest,
+  robot, rig, scene, input, time, wind, status, logbook, scanner, relay: relays[0], relays, regions, temple, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

@@ -67,6 +67,7 @@ export class Hud {
       <div class="hud-caption" data-el="caption"></div>
       <div class="hud-fps" data-el="fps"></div>
       <div class="hud-shutter" data-el="shutter"></div>
+      <div class="hud-spores" data-el="spores"></div>
       <div class="hud-fade" data-el="fade"></div>
     `;
     for (const node of this.root.querySelectorAll<HTMLElement>("[data-el]")) this.el[node.dataset.el!] = node;
@@ -186,6 +187,11 @@ export class Hud {
 
   setFps(text: string): void {
     this.el.fps.textContent = text;
+  }
+
+  /** Spore haze over the view, 0–1. */
+  setSpores(amount: number): void {
+    this.el.spores.style.opacity = String(amount);
   }
 
   setFade(opacity: number): void {

@@ -28,7 +28,12 @@ const SAVE_KEY = "konia.save.v1";
 export interface SaveData {
   version: 1;
   logbook: Record<string, EntryProgress>;
+  /** Shrine Street's station; kept for saves from before Temple Hill. */
   relayActivated: boolean;
+  /** Ids of every activated Relay Station. */
+  relays?: string[];
+  /** The station the robot respawns at. */
+  homeRelay?: string;
   day: number;
   hours: number;
 }

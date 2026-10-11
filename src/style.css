@@ -356,6 +356,16 @@ button {
   }
 }
 
+/* Spore cloud clogging the sensors: an ochre haze that clears over ~20 s. */
+.hud-spores {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(196, 150, 70, 0.25) 0%, rgba(150, 110, 45, 0.7) 60%, rgba(110, 78, 30, 0.92) 100%);
+}
+
 .hud-fade {
   position: absolute;
   inset: 0;

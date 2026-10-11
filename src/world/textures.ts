@@ -6,7 +6,7 @@ import { Color3, DynamicTexture, Scene, StandardMaterial, Texture } from "../bab
  * how many metres one tile covers.
  */
 
-type Ctx = CanvasRenderingContext2D;
+export type Ctx = CanvasRenderingContext2D;
 
 /** Small seeded random generator so the city looks the same on every load. */
 export function rng(seed: number): () => number {
@@ -20,7 +20,7 @@ export function rng(seed: number): () => number {
   };
 }
 
-function paint(scene: Scene, name: string, size: number, draw: (c: Ctx, s: number, r: () => number) => void, alpha = false): DynamicTexture {
+export function paint(scene: Scene, name: string, size: number, draw: (c: Ctx, s: number, r: () => number) => void, alpha = false): DynamicTexture {
   const tex = new DynamicTexture(name, { width: size, height: size }, scene, true);
   const c = tex.getContext() as unknown as Ctx;
   let seed = 0;
