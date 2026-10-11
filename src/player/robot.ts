@@ -35,8 +35,7 @@ interface Mantle {
 }
 
 /**
- * Placeholder robot (the real design comes from the robot stylesheet later)
- * and its character controller. The collider is an invisible ellipsoid moved
+ * Player robot: placeholder body built from primitives and its character controller. The collider is an invisible ellipsoid moved
  * with Babylon's built-in collision system.
  */
 export class Robot {
@@ -48,6 +47,12 @@ export class Robot {
   private grounded = false;
   private sprinting = false;
   private mantle: Mantle | undefined;
+  private pelvis!: TransformNode;
+  private head!: TransformNode;
+  private readonly arms: { shoulder: TransformNode; elbow: TransformNode }[] = [];
+  private readonly legs: { hip: TransformNode; knee: TransformNode }[] = [];
+  private walkPhase = 0;
+  private walkBlend = 0;
 
   constructor(private readonly scene: Scene, spawn: Vector3) {
     this.collider = MeshBuilder.CreateBox("robotCollider", { size: 0.1 }, scene);
@@ -109,6 +114,7 @@ export class Robot {
     const start = this.collider.position.clone();
     if (this.mantle) {
       this.updateMantle(dt);
+      this.animate(dt, 0);
       return horizontalDistance(start, this.collider.position);
     }
 
@@ -135,6 +141,7 @@ export class Robot {
     }
     // Holding forward against a ledge while in the air grabs it.
     if (!this.grounded && moving && this.verticalVelocity < 2.5 && this.tryMantle(facing, false)) {
+      this.animate(dt, 0);
       return horizontalDistance(start, this.collider.position);
     }
 
@@ -168,7 +175,9 @@ export class Robot {
 
     const targetYaw = faceCamera ? yaw : moving ? Math.atan2(move.x, move.z) : this.visual.rotation.y;
     this.visual.rotation.y = lerpAngle(this.visual.rotation.y, targetYaw, Math.min(1, TURN_RATE * dt));
-    return horizontalDistance(start, this.collider.position);
+    const moved = horizontalDistance(start, this.collider.position);
+    this.animate(dt, moved);
+    return moved;
   }
 
   /** Looks for a ledge in front of the robot and starts climbing onto it. */
@@ -213,37 +222,118 @@ export class Robot {
     }
   }
 
+  /**
+   * Placeholder body after the player-robot reference sheet: slim biped, about
+   * 1.6 m, wide binocular head on a thin neck, ceramic shell over graphite joints.
+   */
   private buildBody(scene: Scene): void {
     const shell = new StandardMaterial("robotShell", scene);
     shell.diffuseColor = Color3.FromHexString("#d8cfc6"); // mat-ceramic
-    shell.specularColor = new Color3(0.4, 0.4, 0.4);
+    shell.specularColor = new Color3(0.25, 0.25, 0.25);
     const dark = new StandardMaterial("robotDark", scene);
     dark.diffuseColor = Color3.FromHexString("#635f5c"); // mat-graphite
+    dark.specularColor = new Color3(0.3, 0.3, 0.3);
+    const joint = new StandardMaterial("robotJoint", scene);
+    joint.diffuseColor = Color3.FromHexString("#262626"); // flexible joints
     const glow = new StandardMaterial("robotGlow", scene);
-    glow.emissiveColor = new Color3(0.35, 0.85, 1);
+    glow.emissiveColor = new Color3(0.55, 0.92, 1); // accent lights, cyan-white
     glow.disableLighting = true;
 
-    const add = (mesh: Mesh, mat: StandardMaterial, y: number, z = 0) => {
+    const part = (mesh: Mesh, mat: StandardMaterial, parent: TransformNode, x = 0, y = 0, z = 0) => {
       mesh.material = mat;
-      mesh.parent = this.visual;
-      mesh.position.set(0, y, z);
+      mesh.parent = parent;
+      mesh.position.set(x, y, z);
       mesh.isPickable = false;
       this.bodyMeshes.push(mesh);
       return mesh;
     };
+    const node = (name: string, parent: TransformNode, x: number, y: number, z = 0) => {
+      const n = new TransformNode(name, scene);
+      n.parent = parent;
+      n.position.set(x, y, z);
+      return n;
+    };
+    /** A limb segment hanging down from its joint node. */
+    const limb = (parent: TransformNode, length: number, radius: number, mat: StandardMaterial) => {
+      part(MeshBuilder.CreateSphere("robotJoint", { diameter: radius * 2.4, segments: 6 }, scene), joint, parent);
+      const seg = part(MeshBuilder.CreateCapsule("robotLimb", { height: length, radius, tessellation: 8, subdivisions: 1 }, scene), mat, parent, 0, -length / 2);
+      return seg;
+    };
 
-    add(MeshBuilder.CreateCapsule("robotBody", { height: 0.85, radius: 0.32 }, scene), shell, 0.75);
-    add(MeshBuilder.CreateSphere("robotHead", { diameter: 0.5 }, scene), shell, 1.32);
-    // Twin camera lenses: the only cyan in the world.
-    for (const x of [-0.09, 0.09]) {
-      const lens = add(MeshBuilder.CreateCylinder("robotLens", { diameter: 0.12, height: 0.08 }, scene), glow, 1.34, 0.23);
-      lens.rotation.x = Math.PI / 2;
-      lens.position.x = x;
+    this.pelvis = node("robotPelvis", this.visual, 0, 0.86);
+    part(MeshBuilder.CreateCylinder("robotHips", { diameterTop: 0.26, diameterBottom: 0.2, height: 0.16, tessellation: 8 }, scene), dark, this.pelvis);
+    // Torso: tapered ceramic shell over a graphite spine.
+    const chest = part(MeshBuilder.CreateCylinder("robotChest", { diameterTop: 0.42, diameterBottom: 0.24, height: 0.46, tessellation: 10 }, scene), shell, this.pelvis, 0, 0.36);
+    chest.scaling.z = 0.68;
+    part(MeshBuilder.CreateCylinder("robotSpine", { diameter: 0.12, height: 0.3, tessellation: 6 }, scene), dark, this.pelvis, 0, 0.12);
+    const core = part(MeshBuilder.CreateBox("robotCoreLight", { width: 0.03, height: 0.16, depth: 0.02 }, scene), glow, this.pelvis, 0, 0.34, 0.145);
+    core.rotation.x = -0.15;
+    // Solar plates on the back.
+    for (const side of [-1, 1]) {
+      const plate = part(MeshBuilder.CreateBox("robotSolar", { width: 0.18, height: 0.32, depth: 0.03 }, scene), joint, this.pelvis, side * 0.1, 0.4, -0.15);
+      plate.rotation.set(0.15, side * 0.25, 0);
     }
-    const legL = add(MeshBuilder.CreateBox("robotLegL", { width: 0.14, height: 0.4, depth: 0.14 }, scene), dark, 0.2);
-    legL.position.x = -0.16;
-    const legR = add(MeshBuilder.CreateBox("robotLegR", { width: 0.14, height: 0.4, depth: 0.14 }, scene), dark, 0.2);
-    legR.position.x = 0.16;
+    // Neck and head.
+    part(MeshBuilder.CreateCylinder("robotNeck", { diameter: 0.05, height: 0.2, tessellation: 6 }, scene), joint, this.pelvis, 0, 0.68);
+    this.head = node("robotHead", this.pelvis, 0, 0.84);
+    const skull = part(MeshBuilder.CreateSphere("robotSkull", { diameter: 1, segments: 10 }, scene), shell, this.head);
+    skull.scaling.set(0.44, 0.24, 0.32);
+    for (const x of [-0.1, 0.1]) {
+      const rim = part(MeshBuilder.CreateCylinder("robotLensRim", { diameter: 0.17, height: 0.1, tessellation: 14 }, scene), dark, this.head, x, -0.005, 0.12);
+      rim.rotation.x = Math.PI / 2;
+      // Twin camera lenses: the only cyan in the world.
+      const lens = part(MeshBuilder.CreateCylinder("robotLens", { diameter: 0.09, height: 0.02, tessellation: 12 }, scene), glow, this.head, x, -0.005, 0.175);
+      lens.rotation.x = Math.PI / 2;
+    }
+    part(MeshBuilder.CreateSphere("robotSensor", { diameter: 0.05, segments: 6 }, scene), dark, this.head, 0, 0.1, 0.05);
+
+    // Arms: long, reaching to the knees.
+    for (const side of [-1, 1]) {
+      const shoulder = node("robotShoulder", this.pelvis, side * 0.22, 0.56);
+      part(MeshBuilder.CreateSphere("robotPauldron", { diameter: 0.15, segments: 6 }, scene), shell, shoulder);
+      limb(shoulder, 0.3, 0.035, shell);
+      const elbow = node("robotElbow", shoulder, 0, -0.32);
+      limb(elbow, 0.28, 0.03, dark);
+      const hand = part(MeshBuilder.CreateBox("robotHand", { width: 0.05, height: 0.12, depth: 0.08 }, scene), joint, elbow, 0, -0.34);
+      hand.rotation.x = 0.2;
+      this.arms.push({ shoulder, elbow });
+    }
+    // Legs with a split foot.
+    for (const side of [-1, 1]) {
+      const hip = node("robotHip", this.pelvis, side * 0.1, -0.06);
+      limb(hip, 0.38, 0.05, shell);
+      const knee = node("robotKnee", hip, 0, -0.4);
+      limb(knee, 0.36, 0.04, dark);
+      for (const toe of [-0.03, 0.03]) {
+        const foot = part(MeshBuilder.CreateBox("robotToe", { width: 0.04, height: 0.04, depth: 0.16 }, scene), joint, knee, toe, -0.4, 0.05);
+        foot.rotation.y = toe * 3;
+      }
+      this.legs.push({ hip, knee });
+    }
+  }
+
+  /** Procedural walk cycle, driven by how far the robot moved this frame. */
+  private animate(dt: number, moved: number): void {
+    const speed = dt > 0 ? moved / dt : 0;
+    const stride = Math.min(1, speed / WALK_SPEED);
+    this.walkPhase += moved * 3.2;
+    this.walkBlend += (stride - this.walkBlend) * Math.min(1, dt * 10);
+    const b = this.walkBlend;
+    const t = performance.now() / 1000;
+    for (let i = 0; i < 2; i++) {
+      const phase = this.walkPhase + i * Math.PI;
+      const swing = Math.sin(phase) * 0.6 * b;
+      this.legs[i].hip.rotation.x = this.grounded ? swing : -0.5;
+      this.legs[i].knee.rotation.x = this.grounded ? Math.max(0, -Math.cos(phase)) * 0.9 * b + 0.05 : 0.9;
+      this.arms[i].shoulder.rotation.x = -swing * 0.7;
+      this.arms[i].shoulder.rotation.z = (i === 0 ? 1 : -1) * 0.06;
+      this.arms[i].elbow.rotation.x = -0.25 - 0.2 * b;
+    }
+    // Bob while walking, breathe-like sway while idle, look slightly around.
+    this.pelvis.position.y = 0.86 + Math.abs(Math.sin(this.walkPhase)) * 0.04 * b + Math.sin(t * 1.6) * 0.006 * (1 - b);
+    this.pelvis.rotation.x = 0.12 * b * (this.sprinting ? 1.6 : 1);
+    this.head.rotation.y = Math.sin(t * 0.4) * 0.25 * (1 - b);
+    this.head.rotation.x = -this.pelvis.rotation.x * 0.8;
   }
 }
 
