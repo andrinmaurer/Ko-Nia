@@ -8,7 +8,7 @@ import { type AbstractMesh, type Scene, type ShadowGenerator, TransformNode } fr
  * out of the shadow map too, because the light's shadow bounds would otherwise
  * still stretch over the hidden block.
  */
-export type RegionId = "street" | "temple" | "arcade" | "station";
+export type RegionId = "street" | "temple" | "arcade" | "station" | "tower";
 
 interface Region {
   root: TransformNode;

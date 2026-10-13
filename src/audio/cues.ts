@@ -213,6 +213,22 @@ export const swiftChatter: Recipe = (e, out) => {
   }
 };
 
+/** Ledge Kite: a thin, high whistle, falling at the end. */
+export const kiteWhistle: Recipe = (e, out) => {
+  const f = rand(2600, 3000);
+  e.tone(out, { freq: f, toFreq: f * 1.05, attack: 0.08, decay: 0.45, peak: 0.05 });
+  e.tone(out, { freq: f * 1.02, toFreq: f * 0.62, start: 0.5, attack: 0.05, decay: 0.7, peak: 0.045 });
+};
+
+/** Plaza Deer bolting: quick hoofbeats on grass and paving. */
+export const hooves: Recipe = (e, out) => {
+  let t = 0;
+  for (let i = 0; i < 9; i++) {
+    t += rand(0.09, 0.16);
+    e.burst(out, { kind: "brown", type: "lowpass", freq: rand(380, 520), start: t, decay: 0.05, peak: 0.3 });
+  }
+};
+
 export const birdChirp: Recipe = (e, out) => {
   const n = 2 + Math.floor(Math.random() * 3);
   const base = rand(2600, 3600);

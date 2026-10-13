@@ -16,6 +16,7 @@ export const REGION_LABELS: Record<RegionId, string> = {
   temple: "Temple Hill",
   arcade: "Flooded Arcade",
   station: "Sunken Station",
+  tower: "Tower Foot",
 };
 
 export const LEADS: Lead[] = [
@@ -56,6 +57,15 @@ export const LEADS: Lead[] = [
   { id: "tunnel-hound", region: "station", text: "A clicking in the tunnel behind the platform. Don't run down there." },
   { id: "art-departure-board", region: "station", text: "The board over the ticket gates still shows one line." },
   { id: "origin-charger", region: "station", text: "At the far end of the platform, something was wired into the wall." },
+  // Tower Foot
+  { id: "window-birch", region: "tower", text: "Pale trunks stand on the open floors, where desks used to be." },
+  { id: "duct-vine", region: "tower", text: "Leaves are coming out of the air ducts." },
+  { id: "lobby-fig", region: "tower", text: "Grey roots have the lobby's columns in a net." },
+  { id: "glass-swallow", region: "tower", text: "Mud cups under the window ledges on the tower's front." },
+  { id: "plaza-deer", region: "tower", text: "Something grazes in the plaza's long grass, and bolts at a run." },
+  { id: "ledge-kite", region: "tower", text: "A thin whistle high on the split side. Keep away from the edges up there." },
+  { id: "art-city-model", region: "tower", text: "Near the top floor, a room with a long table and something laid out on it." },
+  { id: "origin-terrace", region: "tower", text: "Up on the roof, at the edge, something sits very still." },
 ];
 
 /**

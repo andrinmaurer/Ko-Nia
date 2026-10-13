@@ -606,7 +606,11 @@ function buildTunnel(kit: Kit, scene: Scene, m: Mats, r: () => number): void {
   kit.box("denWallS", d.x0, d.x1, p.floor - 1, tn.ceiling, d.z0 - 0.4, d.z0, m.rubble);
   kit.box("denWallW", d.x0 - 0.4, d.x0, p.floor - 1, tn.ceiling, d.z0 - 0.4, tn.z0, m.concreteDark);
   kit.box("denWallE", d.x1, d.x1 + 0.4, p.floor - 1, tn.ceiling, d.z0 - 0.4, tn.z0, m.concreteDark);
-  for (const [x0, x1] of [[tn.x0 - 0.4, tn.x0], [tn.x1, tn.x1 + 0.4]] as const) kit.box("tunnelEnd", x0, x1, p.floor - 1, tn.ceiling, tn.z0, tn.z1, m.concreteDark);
+  kit.box("tunnelEnd", tn.x0 - 0.4, tn.x0, p.floor - 1, tn.ceiling, tn.z0, tn.z1, m.concreteDark);
+  // The east end: a service door, blown out, on into the corridor to Tower Foot (see towerFoot.ts).
+  kit.box("tunnelDoorJamb", tn.x1, tn.x1 + 0.4, p.floor, tn.ceiling, tn.z0, tn.z0 + 0.4, m.concreteDark);
+  kit.box("tunnelDoorJamb", tn.x1, tn.x1 + 0.4, p.floor, tn.ceiling, tn.z1 - 0.4, tn.z1, m.concreteDark);
+  kit.box("tunnelDoorHead", tn.x1, tn.x1 + 0.4, p.floor + 2.4, tn.ceiling, tn.z0, tn.z1, m.concreteDark);
   // Cable trays and pipes along the north wall.
   for (const y of [-11.4, -11.9]) kit.box("cableTray", tn.x0, tn.x1, y, y + 0.06, tn.z1 - 0.45, tn.z1, m.rust, { collide: false, cast: false });
   kit.box("tunnelPipe", tn.x0, tn.x1, -12.6, -12.35, tn.z0 + 0.05, tn.z0 + 0.3, m.rust, { collide: false, cast: false });
