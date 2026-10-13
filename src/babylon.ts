@@ -16,6 +16,7 @@ export { ImageProcessingConfiguration } from "@babylonjs/core/Materials/imagePro
 export { ColorCurves } from "@babylonjs/core/Materials/colorCurves";
 export { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 export { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+export { PointLight } from "@babylonjs/core/Lights/pointLight";
 export { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
 export { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
 export { UniversalCamera } from "@babylonjs/core/Cameras/universalCamera";

@@ -399,7 +399,8 @@ export function mantisVisual(scene: Scene, body: TransformNode): { parts: Mesh[]
   return { parts, arms, wings };
 }
 
-export function predecessorVisual(scene: Scene, node: TransformNode): Mesh[] {
+/** `headPitch`: how far the head has dropped forward (the Shrine Street unit's is slumped onto its chest). */
+export function predecessorVisual(scene: Scene, node: TransformNode, opts: { headPitch?: number } = {}): Mesh[] {
   // Older relative of the player robot, slumped where it shut down: cracked ivory ceramic over a graphite frame,
   // binocular head drooping forward, solar panels folded on its back, rust-red Rebar Ivy draped over it.
   const ceramic = organic(scene, "predecessor-ceramic", "#c9bea6", "ceramic");
@@ -417,11 +418,12 @@ export function predecessorVisual(scene: Scene, node: TransformNode): Mesh[] {
   f.ellipsoid([.01, .42, -.06], [.26, .14, .2], grime);
   // Neck and the wide binocular head, dropped forward onto the chest.
   f.taper([[.02, .8, -.18], [.04, .9, -.1], [.06, .92, .0]], .04, .035, metal);
-  const head = f.ellipsoid([.07, .92, .06], [.56, .24, .3], ceramic, 10); head.rotation.set(.45, 0, -.2);
+  const pitch = opts.headPitch ?? .45;
+  const head = f.ellipsoid([.07, .92, .06], [.56, .24, .3], ceramic, 10); head.rotation.set(pitch, 0, -.2);
   for (const side of [-1, 1]) {
     const barrel = MeshBuilder.CreateCylinder("predecessor-form", { diameter: .18, height: .1, tessellation: 12 }, scene);
-    barrel.position.set(.07 + side * .14, .87 - side * .03, .2); barrel.rotation.set(Math.PI / 2 + .45, 0, -.2); f.add(barrel, metal);
-    f.ellipsoid([.07 + side * .14, .86 - side * .03, .25], [.13, .13, .03], lens);
+    barrel.position.set(.07 + side * .14, .87 - side * .03 + (.45 - pitch) * .12, .2); barrel.rotation.set(Math.PI / 2 + pitch, 0, -.2); f.add(barrel, metal);
+    f.ellipsoid([.07 + side * .14, .86 - side * .03 + (.45 - pitch) * .12, .25], [.13, .13, .03], lens);
     // Shoulder, upper arm hanging, forearm resting on the deck, three-fingered hand.
     f.ellipsoid([side * .25, .74, -.14], [.17, .17, .17], ceramic);
     f.taper([[side * .27, .7, -.12], [side * .33, .45, -.02], [side * .36, .22, .04]], .045, .035, metal);

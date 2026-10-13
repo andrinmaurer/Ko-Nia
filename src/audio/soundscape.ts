@@ -40,6 +40,8 @@ const PROFILES: Record<string, Profile> = {
   arcade: { wind: 0.28, leaves: 0.06, water: 0.5, hum: 0, reverb: 0.38, birds: 0.5, drips: 1.5 },
   // Underground blocks: little wind, a low hum, long echoes.
   station: { wind: 0.08, leaves: 0, water: 0.12, hum: 0.5, reverb: 0.55, birds: 0, drips: 2 },
+  // Open plaza and a windy tower.
+  tower: { wind: 0.7, leaves: 0.3, water: 0, hum: 0, reverb: 0.16, birds: 1, drips: 0.2 },
 };
 const DEFAULT_PROFILE = PROFILES.street;
 
@@ -62,6 +64,15 @@ const CAPTION_CUES: { match: RegExp; entry?: string; play: Recipe[]; bus?: Bus }
   { match: /SNAP!/, play: [cue.snap] },
   { match: /Too deep/, play: [cue.strain] },
   { match: /offering box/, entry: "moss-tanuki", play: [cue.scratch, cue.chuff] },
+  { match: /Low clicking/, entry: "tunnel-hound", play: [cue.houndClicks] },
+  { match: /Clicking, faster/, entry: "tunnel-hound", play: [cue.houndAlert] },
+  { match: /Knocked flat/, play: [cue.thud] },
+  { match: /twittering pours/, entry: "cave-swift", play: [cue.swiftChatter, cue.wingFlaps] },
+  { match: /ticket slot rattles/, entry: "ticket-beetle", play: [cue.scratch] },
+  { match: /thin, high whistle/, entry: "ledge-kite", play: [cue.kiteWhistle] },
+  { match: /rush of wings/, play: [cue.wingFlaps, cue.thud] },
+  { match: /bolts into the trees/, entry: "plaza-deer", play: [cue.hooves] },
+  { match: /swallows pour off/, entry: "glass-swallow", play: [cue.swiftChatter, cue.wingFlaps] },
 ];
 
 /** Occasional calls from animals nearby, so the city feels inhabited between events. */
@@ -72,6 +83,10 @@ const IDLE_CALLS: { entry: string; when: "day" | "night" | "any"; every: [number
   { entry: "mudskipper-shoal", when: "day", every: [8, 20], play: cue.plop },
   { entry: "moss-tanuki", when: "night", every: [25, 50], play: cue.chuff },
   { entry: "drainback", when: "any", every: [30, 70], play: cue.scratch },
+  { entry: "cave-swift", when: "day", every: [15, 35], play: cue.swiftChatter },
+  { entry: "tunnel-hound", when: "night", every: [12, 25], play: cue.houndClicks },
+  { entry: "ledge-kite", when: "day", every: [25, 50], play: cue.kiteWhistle },
+  { entry: "glass-swallow", when: "day", every: [10, 25], play: cue.birdChirp },
 ];
 
 const HEARING_RANGE = 35;

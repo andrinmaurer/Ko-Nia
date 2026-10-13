@@ -27,6 +27,8 @@ export class Input {
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (e) => {
+      // Native title/settings controls keep keyboard activation and focus navigation.
+      if (!this.locked && e.target instanceof Element && e.target.closest("button, input, select, summary, textarea") && e.code !== "Escape") return;
       // Keep Tab, Space and the arrow keys from moving focus or scrolling.
       if (e.code === "Tab" || e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
       if (!this.down.has(e.code)) this.pressed.add(e.code);

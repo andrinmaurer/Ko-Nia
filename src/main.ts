@@ -29,6 +29,10 @@ import { createArcadeDiscoveries, createArcadeLife } from "./world/life/arcadeLi
 import { buildCedarSilhouette, createTempleDiscoveries, createTempleLife } from "./world/life/templeLife";
 import { buildArcadePassage, passageRegionAt, PASSAGE } from "./world/arcadePassage";
 import { buildFloodedArcade, waterAt } from "./world/floodedArcade";
+import { createStationDiscoveries, createStationLife } from "./world/life/stationLife";
+import { buildStationPassage, buildSunkenStation, stationRegionAt, undergroundAt } from "./world/sunkenStation";
+import { createTowerDiscoveries, createTowerLife } from "./world/life/towerLife";
+import { buildTowerFoot, buildTowerPassage, towerRegionAt } from "./world/towerFoot";
 import { Regions } from "./world/regions";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
@@ -42,6 +46,7 @@ import { UpgradesView } from "./ui/upgradesView";
 import { MapView } from "./ui/mapView";
 import { loadSettings } from "./game/settings";
 import { SettingsView } from "./ui/settingsView";
+import { TitleBackdrops } from "./ui/titleBackdrops";
 import { Soundscape } from "./audio/soundscape";
 import * as sfx from "./audio/cues";
 
@@ -58,6 +63,8 @@ const SPORE_ENERGY = 40;
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const startScreen = document.getElementById("start") as HTMLDivElement;
 const startMenu = document.getElementById("start-menu") as HTMLDivElement;
+const titleBackdrops = new TitleBackdrops(startScreen);
+document.querySelector("#start-controls summary")!.innerHTML = `${icon("keyboard")}Controls`;
 
 // Resolution is managed by QualityController (no automatic device-ratio scaling).
 const engine = new Engine(canvas, true, { stencil: true, powerPreference: "high-performance" }, false);
@@ -92,6 +99,10 @@ const arcade = regions.capture("arcade", () => {
   buildCedarSilhouette(scene);
   return built;
 });
+regions.capture(["arcade", "station"], () => buildStationPassage(scene, shadows));
+const station = regions.capture("station", () => buildSunkenStation(scene, shadows));
+regions.capture(["station", "tower"], () => buildTowerPassage(scene, shadows));
+const tower = regions.capture("tower", () => buildTowerFoot(scene, shadows));
 const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -112,6 +123,8 @@ const relays = [
   new RelayStation("street", world.relayStation, world.spawn, world.spawnYaw, scene.getMaterialByName("glow") as StandardMaterial | null),
   new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
   new RelayStation("arcade", arcade.relayStation, arcade.spawn, arcade.spawnYaw, arcade.relayGlow),
+  new RelayStation("station", station.relayStation, station.spawn, station.spawnYaw, station.relayGlow),
+  new RelayStation("tower", tower.relayStation, tower.spawn, tower.spawnYaw, tower.relayGlow),
 ];
 /** Where the robot respawns: the Relay Station it used last. */
 let homeRelay = relays[0];
@@ -150,12 +163,16 @@ const life: LifeForm[] = [
   ...regions.capture("street", () => [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)]),
   ...regions.capture("temple", () => createTempleLife(ctx, shadows)),
   ...regions.capture("arcade", () => createArcadeLife(ctx, shadows, arcade)),
+  ...regions.capture("station", () => createStationLife(ctx, shadows, station)),
+  ...regions.capture("tower", () => createTowerLife(ctx, shadows, tower)),
 ];
 const scannables: Scannable[] = [
   ...life.flatMap((l) => l.scannables),
   ...regions.capture("street", () => createStaticDiscoveries(ctx)),
   ...regions.capture("temple", () => createTempleDiscoveries(ctx, temple)),
   ...regions.capture("arcade", () => createArcadeDiscoveries(ctx, arcade)),
+  ...regions.capture("station", () => createStationDiscoveries(ctx, station)),
+  ...regions.capture("tower", () => createTowerDiscoveries(ctx, tower)),
 ];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
@@ -250,10 +267,13 @@ renderMenu(saved ? "continue" : "start");
 function renderMenu(mode: "start" | "continue" | "paused"): void {
   menuMode = mode;
   startScreen.classList.remove("show-settings");
-  const first = mode === "start" ? "Start" : "Continue";
+  startScreen.dataset.mode = mode;
+  (document.getElementById("start-controls") as HTMLDetailsElement).open = false;
+  const first = mode === "start" ? "New game" : mode === "paused" ? "Resume" : "Continue";
   startMenu.innerHTML =
-    `<button class="kn-menu-item" data-action="play" aria-current="true">${icon("play")}${first}</button>` +
-    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("plus")}New game</button>`) +
+    `<button class="kn-menu-item" data-action="play" aria-current="true">${icon(mode === "start" ? "play" : "ring")}${first}</button>` +
+    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("play")}New game</button>`) +
+    `<button class="kn-menu-item" data-action="logbook">${icon("book")}Logbook</button>` +
     `<button class="kn-menu-item" data-action="settings">${icon("sliders")}Settings</button>` +
     (mode === "paused" ? `<button class="kn-menu-item" data-action="report">${icon("clipboard")}Copy playtest report</button>` : "");
 }
@@ -278,6 +298,7 @@ startMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   const action = (e.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
   if (action === "play") input.requestLock();
+  if (action === "logbook") openLogbook();
   if (action === "settings") {
     startScreen.classList.add("show-settings");
     settingsView.render();
@@ -287,6 +308,21 @@ startMenu.addEventListener("click", (e) => {
     clearSave();
     location.reload();
   }
+});
+
+// Keep the reference's selection treatment aligned with pointer and keyboard focus.
+startMenu.addEventListener("focusin", (e) => selectMenuItem(e.target));
+startMenu.addEventListener("pointerover", (e) => selectMenuItem(e.target));
+function selectMenuItem(target: EventTarget | null): void {
+  const item = (target as HTMLElement | null)?.closest<HTMLButtonElement>("button[data-action]");
+  if (!item) return;
+  for (const button of startMenu.querySelectorAll("button[data-action]")) button.setAttribute("aria-current", String(button === item));
+}
+startMenu.addEventListener("keydown", (e) => {
+  if (startScreen.classList.contains("show-settings") || !["ArrowDown", "ArrowUp"].includes(e.code)) return;
+  const items = [...startMenu.querySelectorAll<HTMLButtonElement>("button[data-action]")];
+  const i = items.indexOf(document.activeElement as HTMLButtonElement);
+  e.preventDefault(); items[(i + (e.code === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
 });
 
 let lastSave = performance.now();
@@ -355,7 +391,9 @@ document.addEventListener(LOCK_CHANGE, () => {
   startScreen.classList.toggle("hidden", input.locked || ["logbook", "upgrades", "map"].includes(state));
 });
 
+let logbookReturn: State = "playing";
 function openLogbook(): void {
+  logbookReturn = state;
   state = "logbook";
   tutorial.logbookOpened = true;
   playtest.logbookOpened();
@@ -367,10 +405,13 @@ function openLogbook(): void {
 function closeLogbook(): void {
   logbookView.close();
   hud.setUnread(logbook.unread.size);
-  state = "paused";
-  renderMenu("paused");
-  startScreen.classList.remove("hidden");
-  input.requestLock();
+  if (logbookReturn === "start" || logbookReturn === "paused") {
+    state = logbookReturn; renderMenu(state === "paused" ? "paused" : readSave() ? "continue" : "start");
+    startScreen.classList.remove("hidden");
+    startMenu.querySelector<HTMLButtonElement>('[data-action="logbook"]')?.focus();
+  } else {
+    state = "paused"; renderMenu("paused"); startScreen.classList.remove("hidden"); input.requestLock();
+  }
 }
 
 async function transition(midpoint: () => void): Promise<void> {
@@ -431,10 +472,12 @@ function respawn(): void {
 // --- Frame loop --------------------------------------------------------------
 
 let fpsTimer = 0;
+let underground = 0;
 let autosaveTimer = 30;
 
 scene.onBeforeRenderObservable.add(() => {
   const real = engine.getDeltaTime() / 1000;
+  titleBackdrops.update(real, state === "start" && !settings.reducedMotion);
   if (state === "playing") {
     quality.update(real);
     playtest.sampleFrame(real, quality.label);
@@ -453,7 +496,14 @@ function frame(dt: number): void {
     updateGame(dt);
   }
   input.endFrame();
-  atmosphere.apply(time, scanner.lensOn && scanner.mode === "night");
+  // Underground, the light fades in over the first few metres down the stairs.
+  underground += (undergroundAt(robot.position) - underground) * Math.min(1, dt * 2);
+  atmosphere.apply(time, scanner.lensOn && scanner.mode === "night", Math.round(underground * 50) / 50);
+  // Deep underground the sun is all but cut, so its shadow map can stop updating (saves a pass of draws).
+  // (Only set on change: setting the rate resets the map's counter, which renders it again.)
+  const shadowMap = shadows.getShadowMap();
+  const shadowRate = underground > 0.97 ? 0 : 1;
+  if (shadowMap && shadowMap.refreshRate !== shadowRate) shadowMap.refreshRate = shadowRate;
 
   fpsTimer -= dt;
   if (fpsTimer <= 0) {
@@ -579,9 +629,11 @@ function updateRegion(): void {
   const p = robot.position;
   const active = regions.active;
   const want =
-    p.x > PASSAGE.path.x0 - 20
-      ? passageRegionAt(p, active === "street" ? "temple" : active)
-      : laneRegionAt(p, active === "arcade" ? "temple" : active);
+    p.x > 384
+      ? (towerRegionAt(p, active) ?? stationRegionAt(p, active === "station" || active === "tower" ? "station" : "arcade"))
+      : p.x > PASSAGE.path.x0 - 20
+        ? passageRegionAt(p, active === "street" || active === "station" || active === "tower" ? "temple" : active)
+        : laneRegionAt(p, active === "arcade" || active === "station" || active === "tower" ? "temple" : active);
   if (want) regions.activate(want);
 }
 
@@ -609,7 +661,7 @@ declare global {
   }
 }
 window.__konia = {
-  settings, applySettings, settingsView, sound, robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, station, tower, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";
