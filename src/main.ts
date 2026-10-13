@@ -31,6 +31,8 @@ import { buildArcadePassage, passageRegionAt, PASSAGE } from "./world/arcadePass
 import { buildFloodedArcade, waterAt } from "./world/floodedArcade";
 import { createStationDiscoveries, createStationLife } from "./world/life/stationLife";
 import { buildStationPassage, buildSunkenStation, stationRegionAt, undergroundAt } from "./world/sunkenStation";
+import { createTowerDiscoveries, createTowerLife } from "./world/life/towerLife";
+import { buildTowerFoot, buildTowerPassage, towerRegionAt } from "./world/towerFoot";
 import { Regions } from "./world/regions";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
@@ -99,6 +101,8 @@ const arcade = regions.capture("arcade", () => {
 });
 regions.capture(["arcade", "station"], () => buildStationPassage(scene, shadows));
 const station = regions.capture("station", () => buildSunkenStation(scene, shadows));
+regions.capture(["station", "tower"], () => buildTowerPassage(scene, shadows));
+const tower = regions.capture("tower", () => buildTowerFoot(scene, shadows));
 const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -120,6 +124,7 @@ const relays = [
   new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
   new RelayStation("arcade", arcade.relayStation, arcade.spawn, arcade.spawnYaw, arcade.relayGlow),
   new RelayStation("station", station.relayStation, station.spawn, station.spawnYaw, station.relayGlow),
+  new RelayStation("tower", tower.relayStation, tower.spawn, tower.spawnYaw, tower.relayGlow),
 ];
 /** Where the robot respawns: the Relay Station it used last. */
 let homeRelay = relays[0];
@@ -159,6 +164,7 @@ const life: LifeForm[] = [
   ...regions.capture("temple", () => createTempleLife(ctx, shadows)),
   ...regions.capture("arcade", () => createArcadeLife(ctx, shadows, arcade)),
   ...regions.capture("station", () => createStationLife(ctx, shadows, station)),
+  ...regions.capture("tower", () => createTowerLife(ctx, shadows, tower)),
 ];
 const scannables: Scannable[] = [
   ...life.flatMap((l) => l.scannables),
@@ -166,6 +172,7 @@ const scannables: Scannable[] = [
   ...regions.capture("temple", () => createTempleDiscoveries(ctx, temple)),
   ...regions.capture("arcade", () => createArcadeDiscoveries(ctx, arcade)),
   ...regions.capture("station", () => createStationDiscoveries(ctx, station)),
+  ...regions.capture("tower", () => createTowerDiscoveries(ctx, tower)),
 ];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
@@ -623,10 +630,10 @@ function updateRegion(): void {
   const active = regions.active;
   const want =
     p.x > 384
-      ? stationRegionAt(p, active === "station" ? "station" : "arcade")
+      ? (towerRegionAt(p, active) ?? stationRegionAt(p, active === "station" || active === "tower" ? "station" : "arcade"))
       : p.x > PASSAGE.path.x0 - 20
-        ? passageRegionAt(p, active === "street" || active === "station" ? "temple" : active)
-        : laneRegionAt(p, active === "arcade" || active === "station" ? "temple" : active);
+        ? passageRegionAt(p, active === "street" || active === "station" || active === "tower" ? "temple" : active)
+        : laneRegionAt(p, active === "arcade" || active === "station" || active === "tower" ? "temple" : active);
   if (want) regions.activate(want);
 }
 
@@ -654,7 +661,7 @@ declare global {
   }
 }
 window.__konia = {
-settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, station, hud, life, scannables, ctx, playtest, quality,
+settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, station, tower, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";
