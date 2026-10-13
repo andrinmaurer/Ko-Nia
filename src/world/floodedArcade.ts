@@ -50,6 +50,9 @@ export type WaterState = "dry" | "wade" | "deep";
 export function waterAt(p: Vector3): WaterState {
   if (p.x < ARCADE.landing.x1 - 0.5 || p.x > ARCADE.x1 || p.z < ARCADE.z0 || p.z > ARCADE.z1) return "dry";
   if (p.y > ARCADE.water - 0.05) return "dry";
+  // The station stairwell, behind the flood barrier, is dry.
+  const st = ARCADE.station;
+  if (p.x > st.x0 - 0.4 && p.z > st.z0 - 0.4 && p.z < st.z1 + 0.4) return "dry";
   return p.y < -0.8 ? "deep" : "wade";
 }
 
@@ -179,12 +182,33 @@ function buildGround(kit: Kit, scene: Scene, m: Mats): void {
   // The mud bank before the station stairs.
   kit.box("mudBank", mudBank.x0, mudBank.x1, -0.5, mudBank.y, mudBank.z0, mudBank.z1, m.dirt, { cast: false });
 
-  const water = MeshBuilder.CreateGround("arcadeWater", { width: ARCADE.x1 - ARCADE.landing.x0, height: ARCADE.z1 - ARCADE.z0 }, scene);
-  water.position.set((ARCADE.landing.x0 + ARCADE.x1) / 2, ARCADE.water, (ARCADE.z0 + ARCADE.z1) / 2);
+  // The water, everywhere but the station stairwell behind its flood barrier.
+  const waterParts: Mesh[] = [];
+  for (const [x0, x1, z0, z1] of [
+    [ARCADE.landing.x0, station.x0, ARCADE.z0, ARCADE.z1],
+    [station.x0, ARCADE.x1, ARCADE.z0, station.z0],
+    [station.x0, ARCADE.x1, station.z1, ARCADE.z1],
+  ] as const) {
+    const part = MeshBuilder.CreateGround("arcadeWater", { width: x1 - x0, height: z1 - z0 }, scene);
+    part.position.set((x0 + x1) / 2, ARCADE.water, (z0 + z1) / 2);
+    part.bakeCurrentTransformIntoVertices();
+    waterParts.push(part);
+  }
+  const water = Mesh.MergeMeshes(waterParts, true)!;
+  water.name = "arcadeWater";
   water.material = m.water;
   water.isPickable = false;
   water.receiveShadows = true;
   water.freezeWorldMatrix();
+  // The flood barrier: planks and sandbags across the top of the stairs, holding the water back.
+  kit.box("floodBarrier", station.x0 - 0.4, station.x0, -0.5, 0.75, station.z0 - 0.4, station.z1 + 0.4, m.rust);
+  for (let i = 0; i < 7; i++) {
+    const z = station.z0 + 0.45 + i * ((station.z1 - station.z0 - 0.9) / 6);
+    const bag = MeshBuilder.CreateBox("floodSandbag", { width: 0.55, height: 0.22, depth: 0.85 }, scene);
+    bag.position.set(station.x0 - 0.7, mudBank.y + 0.1, z);
+    bag.rotation.y = (i % 2 ? 0.08 : -0.06);
+    kit.add(bag, m.dirt, { collide: false, cast: false, tile: 1 });
+  }
 }
 
 // --- Shops ------------------------------------------------------------------------
@@ -569,7 +593,7 @@ function drawFloodLine(c: Ctx, s: number, r: () => number): void {
 
 function buildStationEntrance(kit: Kit, scene: Scene, m: Mats, r: () => number): { tracks: Mesh[] } {
   const st = ARCADE.station;
-  // Stairs down into black water; the robot can wade in until it is too deep.
+  // Stairs down to the metro, dry behind the flood barrier.
   stairs(kit, scene, "stationStairs", st.x1, st.x0, st.z0, st.z1, -3.2, 0, m.stone);
   kit.box("stationStairsBed", st.x0, st.x1, -4.5, -3.2, st.z0, st.z1, m.dirt, { cast: false });
   // Low walls on both sides of the stairwell, and the entrance canopy.
@@ -579,13 +603,10 @@ function buildStationEntrance(kit: Kit, scene: Scene, m: Mats, r: () => number):
   for (const z of [st.z0 - 0.7, st.z1 + 0.7]) kit.box("stationCanopyPost", st.x1 - 0.8, st.x1 - 0.4, 0, 4.2, z - 0.2, z + 0.2, m.steel);
   // The tunnel mouth: dark under the canopy, blocked by fallen slabs below the water.
   const dark = kit.flat("stationDark", 0.02, 0.025, 0.03, 0);
-  kit.box("stationMouth", ARCADE.x1 - 0.2, ARCADE.x1, -3.5, 4.2, st.z0, st.z1, dark, { cast: false });
-  for (let i = 0; i < 4; i++) {
-    const slab = MeshBuilder.CreateBox("stationSlab", { width: 2.4, height: 0.4, depth: 4.5 }, scene);
-    slab.position.set(st.x1 + 1 + r() * 1.5, -0.6 + i * 0.3, (st.z0 + st.z1) / 2 + (r() - 0.5) * 2);
-    slab.rotation.set(r() * 0.3, r(), 0.5 + r() * 0.4);
-    kit.add(slab, m.concreteDark, { collide: false, tile: 2 });
-  }
+  // The way on: under the end building, a dark corridor east (sunkenStation.ts builds it).
+  kit.box("stationMouth", ARCADE.x1 - 0.2, ARCADE.x1, 1, 4.2, st.z0, st.z1, dark, { cast: false });
+  // (The fallen slabs that used to block it took these; keep the rest of the block's layout as it was.)
+  for (let i = 0; i < 16; i++) r();
   // A sign over the canopy: the metro symbol, faded.
   const signMat = new StandardMaterial("metroSign", scene);
   signMat.diffuseTexture = paint(scene, "tex:metroSign", 256, drawMetroSign);

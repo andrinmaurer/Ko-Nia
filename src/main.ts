@@ -29,6 +29,8 @@ import { createArcadeDiscoveries, createArcadeLife } from "./world/life/arcadeLi
 import { buildCedarSilhouette, createTempleDiscoveries, createTempleLife } from "./world/life/templeLife";
 import { buildArcadePassage, passageRegionAt, PASSAGE } from "./world/arcadePassage";
 import { buildFloodedArcade, waterAt } from "./world/floodedArcade";
+import { createStationDiscoveries, createStationLife } from "./world/life/stationLife";
+import { buildStationPassage, buildSunkenStation, stationRegionAt, undergroundAt } from "./world/sunkenStation";
 import { Regions } from "./world/regions";
 import { RelayStation } from "./world/relay";
 import { buildShrineStreet } from "./world/shrineStreet";
@@ -95,6 +97,8 @@ const arcade = regions.capture("arcade", () => {
   buildCedarSilhouette(scene);
   return built;
 });
+regions.capture(["arcade", "station"], () => buildStationPassage(scene, shadows));
+const station = regions.capture("station", () => buildSunkenStation(scene, shadows));
 const atmosphere = new Atmosphere(scene, sun, sky, new Sky(scene));
 const input = new Input(canvas);
 const robot = new Robot(scene, world.spawn);
@@ -115,6 +119,7 @@ const relays = [
   new RelayStation("street", world.relayStation, world.spawn, world.spawnYaw, scene.getMaterialByName("glow") as StandardMaterial | null),
   new RelayStation("temple", temple.relayStation, temple.spawn, temple.spawnYaw, temple.relayGlow),
   new RelayStation("arcade", arcade.relayStation, arcade.spawn, arcade.spawnYaw, arcade.relayGlow),
+  new RelayStation("station", station.relayStation, station.spawn, station.spawnYaw, station.relayGlow),
 ];
 /** Where the robot respawns: the Relay Station it used last. */
 let homeRelay = relays[0];
@@ -153,12 +158,14 @@ const life: LifeForm[] = [
   ...regions.capture("street", () => [...createPlants(ctx, shadows), ...createAnimals(ctx, shadows)]),
   ...regions.capture("temple", () => createTempleLife(ctx, shadows)),
   ...regions.capture("arcade", () => createArcadeLife(ctx, shadows, arcade)),
+  ...regions.capture("station", () => createStationLife(ctx, shadows, station)),
 ];
 const scannables: Scannable[] = [
   ...life.flatMap((l) => l.scannables),
   ...regions.capture("street", () => createStaticDiscoveries(ctx)),
   ...regions.capture("temple", () => createTempleDiscoveries(ctx, temple)),
   ...regions.capture("arcade", () => createArcadeDiscoveries(ctx, arcade)),
+  ...regions.capture("station", () => createStationDiscoveries(ctx, station)),
 ];
 const scanner = new Scanner(ctx, rig.camera, hud, scannables, save);
 
@@ -458,6 +465,7 @@ function respawn(): void {
 // --- Frame loop --------------------------------------------------------------
 
 let fpsTimer = 0;
+let underground = 0;
 let autosaveTimer = 30;
 
 scene.onBeforeRenderObservable.add(() => {
@@ -481,7 +489,14 @@ function frame(dt: number): void {
     updateGame(dt);
   }
   input.endFrame();
-  atmosphere.apply(time, scanner.lensOn && scanner.mode === "night");
+  // Underground, the light fades in over the first few metres down the stairs.
+  underground += (undergroundAt(robot.position) - underground) * Math.min(1, dt * 2);
+  atmosphere.apply(time, scanner.lensOn && scanner.mode === "night", Math.round(underground * 50) / 50);
+  // Deep underground the sun is all but cut, so its shadow map can stop updating (saves a pass of draws).
+  // (Only set on change: setting the rate resets the map's counter, which renders it again.)
+  const shadowMap = shadows.getShadowMap();
+  const shadowRate = underground > 0.97 ? 0 : 1;
+  if (shadowMap && shadowMap.refreshRate !== shadowRate) shadowMap.refreshRate = shadowRate;
 
   fpsTimer -= dt;
   if (fpsTimer <= 0) {
@@ -607,9 +622,11 @@ function updateRegion(): void {
   const p = robot.position;
   const active = regions.active;
   const want =
-    p.x > PASSAGE.path.x0 - 20
-      ? passageRegionAt(p, active === "street" ? "temple" : active)
-      : laneRegionAt(p, active === "arcade" ? "temple" : active);
+    p.x > 384
+      ? stationRegionAt(p, active === "station" ? "station" : "arcade")
+      : p.x > PASSAGE.path.x0 - 20
+        ? passageRegionAt(p, active === "street" || active === "station" ? "temple" : active)
+        : laneRegionAt(p, active === "arcade" || active === "station" ? "temple" : active);
   if (want) regions.activate(want);
 }
 
@@ -637,7 +654,7 @@ declare global {
   }
 }
 window.__konia = {
-  settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, station, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

@@ -1,12 +1,12 @@
 # Predetermined logbook photos
 
-Every discoverable entry has a fixed environmental photograph. The 52-entry inventory includes Shrine Street, Temple Hill and Flooded Arcade. Images appear after the first scan, stay the same through later research steps, and also appear for entries discovered in earlier saves.
+Every discoverable entry has a fixed environmental photograph. The 69-entry inventory includes Shrine Street, Temple Hill, Flooded Arcade and Sunken Station. Images appear after the first scan, stay the same through later research steps, and also appear for entries discovered in earlier saves.
 
 The game uses optimized 960 × 640 WebP assets in `public/logbook`, selected by `src/discovery/photos.ts`. The logbook detail panel keeps their 3:2 framing. Undiscovered entries do not show photos. Scanning never captures or resizes the gameplay renderer. Loading an older save removes its captured image data while keeping discovery and research progress.
 
 Full-resolution PNG masters are in `masters`. Exact prompts are in `prompts.json`, and `manifest.json` maps entry IDs to the game assets and masters. Generated with the built-in image generation tool; all selected images were visually reviewed.
 
-Validation: production build/typecheck, browser checks for first scan and location discovery, continuing render frames and unchanged renderer size, legacy-save migration, concealment of undiscovered images, and switching both regions. All 52 photo mappings and assets are checked before delivery.
+Validation: production build/typecheck, browser checks for first scan and location discovery, continuing render frames and unchanged renderer size, legacy-save migration, concealment of undiscovered images, and switching both regions. All 69 photo mappings and assets are checked before delivery.
 
 ## Flooded Arcade
 
@@ -16,4 +16,4 @@ All 16 Flooded Arcade entries (37–52 in `prompts.json`) have generated and rev
 
 The 17 Sunken Station photographs (53–69) were generated from the supplied `sunken-station-photo-prompts.md` and visually reviewed. PNG masters, 960 × 640 WebPs, prompt records and all 17 ID mappings are included. This brings the asset inventory to 69 photos.
 
-At integration time, the playable repository still contains 52 entries across Shrine Street, Temple Hill and Flooded Arcade. Sunken Station entry definitions and district code are not yet present on main or the published branches; its mappings are prepared for those entry IDs without adding placeholder discoveries to the existing game.
+Sunken Station is now present in the playable repository. All 69 discoverable entries have fixed photographs, including its 17 newly connected entries.

@@ -58,7 +58,8 @@ export class Sky {
     dome.isPickable = false;
     dome.applyFog = false;
     dome.renderingGroupId = 0;
-    dome.freezeWorldMatrix();
+    // Not frozen: infiniteDistance re-centres the dome on the camera every frame. A frozen dome stays
+    // centred on the origin, and from more than 450 m east (the Sunken Station) the robot would be outside it.
   }
 
   /** `toSun` points from the viewer towards the sun (or moon). */

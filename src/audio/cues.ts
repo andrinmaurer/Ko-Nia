@@ -184,6 +184,35 @@ export const chuff: Recipe = (e, out) => {
   for (const s of [0, 0.22]) e.burst(out, { kind: "pink", type: "bandpass", freq: 520, q: 1.5, start: s, decay: 0.12, peak: 0.25 });
 };
 
+/** Tunnel Hound: dry tongue clicks, the way it listens to the dark. Faster when it has heard something. */
+export const houndClicks: Recipe = (e, out) => {
+  let t = 0;
+  for (let i = 0; i < 6; i++) {
+    t += rand(0.12, 0.2);
+    e.burst(out, { type: "bandpass", freq: rand(2200, 2700), q: 6, start: t, decay: 0.012, peak: 0.4 });
+  }
+};
+
+export const houndAlert: Recipe = (e, out) => {
+  for (let i = 0; i < 14; i++) e.burst(out, { type: "bandpass", freq: rand(2400, 2900), q: 6, start: i * 0.07, decay: 0.012, peak: 0.45 });
+  e.tone(out, { type: "sawtooth", freq: 85, toFreq: 70, start: 0.3, attack: 0.25, decay: 0.9, peak: 0.05 });
+};
+
+/** Knocked down: a heavy body slamming into the robot. */
+export const thud: Recipe = (e, out) => {
+  e.burst(out, { kind: "brown", type: "lowpass", freq: 260, decay: 0.35, peak: 0.8 });
+  e.tone(out, { freq: 60, toFreq: 32, decay: 0.3, peak: 0.4 });
+  e.tone(out, { type: "triangle", freq: 520, toFreq: 380, decay: 0.3, peak: 0.03 });
+};
+
+/** Cave Swifts: high, buzzy twittering, a whole colony of it. */
+export const swiftChatter: Recipe = (e, out) => {
+  for (let i = 0; i < 10; i++) {
+    const f = rand(4200, 5600);
+    e.tone(out, { type: "triangle", freq: f, toFreq: f * rand(0.8, 1.1), start: rand(0, 0.9), decay: 0.05, peak: 0.03 });
+  }
+};
+
 export const birdChirp: Recipe = (e, out) => {
   const n = 2 + Math.floor(Math.random() * 3);
   const base = rand(2600, 3600);

@@ -50,6 +50,14 @@ const MOODS: Mood[] = [
   { hour: 21, sun: hex("#7d93c8"), sunIntensity: 0.42, sky: hex("#4a64a8"), skyIntensity: 0.7, bounce: hex("#1c2230"), zenith: hex("#050a16"), horizon: hex("#16223a"), fog: hex("#121b2e"), fogDensity: 0.02, exposure: 1.62 },
 ];
 
+/** Underground: only a little sky light gets down the shafts, and the air is dark and still. */
+const UNDERGROUND_FOG = new Color3(0.03, 0.035, 0.04);
+const UNDERGROUND_FOG_DENSITY = 0.035;
+const UNDERGROUND_SKY_LIGHT = 0.45;
+const UNDERGROUND_SKY_COLOUR = new Color3(0.72, 0.76, 0.8);
+/** The sun's shadows don't reach far below ground, so its light is mostly cut there; the shafts get their own lights. */
+const UNDERGROUND_SUN = 0.12;
+
 /** Where the moonlight comes from at night (direction the light travels). */
 const MOON_DIRECTION = new Vector3(0.35, -1, -0.45).normalize();
 
@@ -86,21 +94,26 @@ export class Atmosphere {
     ip.colorCurvesEnabled = true;
   }
 
-  apply(time: DayCycle, nightVision = false): void {
+  /** `underground` runs from 0 (in the open) to 1 (below the street, as in the Sunken Station). */
+  apply(time: DayCycle, nightVision = false, underground = 0): void {
     const m = moodAt(time.hours);
     const day = time.daylight;
     // The sun drives shadows by day, the moon by night; swap while both are faint.
     this.sun.direction = day > 0.05 ? time.sunDirection : MOON_DIRECTION;
     this.sun.diffuse = m.sun;
     this.sun.specular = m.sun;
-    this.sun.intensity = m.sunIntensity;
-    this.ambient.diffuse = m.sky;
+    this.sun.intensity = m.sunIntensity * (1 + (UNDERGROUND_SUN - 1) * underground);
+    this.ambient.diffuse = underground > 0 ? Color3.Lerp(m.sky, UNDERGROUND_SKY_COLOUR, underground) : m.sky;
     this.ambient.groundColor = m.bounce;
-    this.ambient.intensity = m.skyIntensity * (nightVision ? 2.2 : 1);
-    this.scene.fogColor = m.fog;
-    this.scene.fogDensity = m.fogDensity;
-    this.scene.clearColor = new Color4(m.horizon.r, m.horizon.g, m.horizon.b, 1);
-    this.scene.ambientColor = m.bounce;
+    const u = underground;
+    // Below ground the same dim light day and night; only the shafts follow the day.
+    this.ambient.intensity = (m.skyIntensity + (UNDERGROUND_SKY_LIGHT - m.skyIntensity) * u) * (nightVision ? 2.2 : 1);
+    const fog = u > 0 ? Color3.Lerp(m.fog, UNDERGROUND_FOG, u) : m.fog;
+    this.scene.fogColor = fog;
+    this.scene.fogDensity = m.fogDensity + (UNDERGROUND_FOG_DENSITY - m.fogDensity) * u;
+    const clear = u > 0 ? Color3.Lerp(m.horizon, UNDERGROUND_FOG, u) : m.horizon;
+    this.scene.clearColor = new Color4(clear.r, clear.g, clear.b, 1);
+    this.scene.ambientColor = m.bounce.scale(1 - 0.6 * u);
     // Changing exposure re-checks every material in the scene, so only step it
     // in 0.01 increments (too small to see) instead of every frame.
     const exposure = Math.round(m.exposure * (nightVision ? 1.8 : 1) * 100) / 100;
