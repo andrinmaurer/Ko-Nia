@@ -388,8 +388,9 @@ class ChoirMoss implements LifeForm {
       if (!gusting) return;
       const near = Vector3.Distance(this.ctx.robot.position, new Vector3(47.5, 0, 0)) < 35;
       if (near) this.ctx.caption("♪ A soft whistling chord drifts from the shrine", 7);
-      else if (!this.announced) this.ctx.caption("Wind gusts through the street", 4);
-      this.announced = true;
+      else if (!this.announced && this.ctx.robot.position.y > -1) this.ctx.caption("Wind gusts through the street", 4);
+      // Underground there is no wind to hear; announce it next time.
+      if (near || this.ctx.robot.position.y > -1) this.announced = true;
     });
   }
 

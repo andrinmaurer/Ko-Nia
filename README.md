@@ -53,6 +53,7 @@ The city continues past Shrine Street, one block at a time. Only one block is dr
 
 - **Temple Hill** ([proposal](docs/blocks/02_TEMPLE_HILL_PROPOSAL.md)): up the stair lane behind the Neighborhood Shrine.
 - **Flooded Arcade** ([proposal](docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md)): through the gap in the temple's east wall and down the stairwell of the old west building. The street is flooded knee-deep: wading is slow and costs energy, deep water sends the robot back, and the shop roofs and roof girders are the dry route.
+- **Sunken Station** ([proposal](docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md)): down the station stairs at the arcade's east end, behind the flood barrier. The first underground block: a ticket hall, stopped escalators, a platform with a stopped train (walk through the carriages or over the roofs) and a maintenance tunnel. Daylight only comes down three shafts. The Tunnel Hound hears running and hard landings; walk, or keep to the train roofs.
 
 ## Performance
 
@@ -83,7 +84,7 @@ The [discoverable asset blockout and visual inventory](docs/art/discoverables/di
 
 ## Logbook photographs
 
-The [52 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street, Temple Hill and Flooded Arcade. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.
+The [69 predetermined logbook photographs](docs/art/logbook-photos/README.md) cover Shrine Street, Temple Hill, Flooded Arcade and Sunken Station. Scanning reveals fixed photos and preserves research progress from existing saves. The game uses optimized WebP assets; PNG masters, prompts, and the entry mapping are included in the art package.
 
 ## Upgrade progression
 
