@@ -35,7 +35,7 @@ Then open the address it prints (usually http://localhost:5173) and click to sta
 | Scan | Left click (lens on) |
 | Change scan mode (available sensors) | ← → |
 | Logbook | Tab (Q / E switch sections) |
-| Use the Relay Station | E (upload, save and recharge), R (rest until night or morning) |
+| Use the Relay Station | E (upload, save and recharge), R (rest until the next dawn, midday, dusk or night) |
 | Switch first / third person | V |
 | Pause | Esc |
 
@@ -43,7 +43,7 @@ Where the browser refuses to capture the mouse (some embedded previews), the gam
 
 ## What's in the MVP block
 
-Every species, artifact and location from the MVP spec is in the block and can be completed in the Logbook. Organisms take three steps: a first scan, a Biological scan from close by, and one behavior you have to witness (some only happen at night, in the wind, or when you keep still). A full day lasts 60 real minutes; resting at the Relay Station skips to night or morning.
+Every species, artifact and location from the MVP spec is in the block and can be completed in the Logbook. Organisms take three steps: a first scan, a Biological scan from close by, and one behavior you have to witness (some only happen at night, in the wind, or when you keep still). A full day lasts 60 real minutes; resting at a Relay Station skips to the next dawn, midday, dusk or night, so every time-of-day behavior is a short rest away.
 
 Progress is saved in the browser (localStorage) after every discovery and at the Relay Station. "New game" on the title screen clears it.
 
@@ -91,4 +91,4 @@ The [69 predetermined logbook photographs](docs/art/logbook-photos/README.md) co
 
 See [upgrade rules and controls](docs/UPGRADES.md). Upload research at a relay, then press U to install eligible upgrades. Existing saves keep sprint and climbing; fresh units begin with walking and jumping. Mission transmissions arrive every 5% uploaded research and can be replayed in the upgrade panel.
 
-The browser regression suite in `tests/upgrades.cjs` runs against the local development server with Playwright installed: `node tests/upgrades.cjs`.
+The browser regression suite in `tests/upgrades.cjs` runs against the local development server with Playwright installed: `node tests/upgrades.cjs`. `node tests/achievable.cjs` checks that every Logbook entry in every block can still be completed (it takes several minutes); run it after adding or moving anything scannable.

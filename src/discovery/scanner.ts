@@ -9,7 +9,7 @@ import type { GameContext, Scannable } from "../game/context";
 import { SCAN_COST } from "../player/status";
 import type { Hud } from "../ui/hud";
 import { ENTRY_BY_ID, stepsFor, unknownNumber, type EntryDef } from "./entries";
-import { locationAt } from "./locations";
+import { blockLocationOf, locationAt } from "./locations";
 import type { EntryProgress, Learned, ScanMode } from "./logbook";
 
 export const SCAN_MODES: ScanMode[] = ["visual", "bio", "audio", "night", "thermal", "genetic", "radiation"];
@@ -130,10 +130,13 @@ export class Scanner {
     const where = { x: this.ctx.robot.position.x, z: this.ctx.robot.position.z };
     const learned = logbook.recordScan(def.id, this.mode, condition, when, locationId, where);
     const newLocation = logbook.discoverLocation(locationId, when);
+    const blockId = blockLocationOf(locationId);
+    const newBlock = blockId !== undefined && logbook.discoverLocation(blockId, when);
 
     this.hud.shutter();
     this.announce(def, learned);
     if (this.mode === "genetic") this.hud.caption(`Lineage analysis: ${def.latin ?? def.name}`, 5);
+    if (newBlock) this.hud.toast("Location recorded", ENTRY_BY_ID.get(blockId)!.name, { kind: "place" });
     if (newLocation) this.hud.toast("Location recorded", ENTRY_BY_ID.get(locationId)!.name, { kind: "place" });
     this.onScanned();
   }

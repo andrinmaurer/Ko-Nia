@@ -191,7 +191,14 @@ class LobbyFigs implements LifeForm {
       this.scannables.push({
         entryId: "lobby-fig",
         meshes: parts,
-        getPosition: () => new Vector3(x, strength > 0.5 ? top - 1.5 : G + 2, c.z),
+        // On the root net, on the side facing the robot: the column's centre is inside solid marble.
+        getPosition: () => {
+          const y = strength > 0.5 ? top - 1.5 : G + 2;
+          const r = this.ctx.robot.position;
+          const d = new Vector3(r.x - x, 0, r.z - c.z);
+          if (d.lengthSquared() < 0.01) d.set(0, 0, 1);
+          return new Vector3(x, y, c.z).addInPlace(d.normalize().scaleInPlace(0.9));
+        },
         // From the top of the column: up on the gallery of floor 2 or above.
         isConditionMet: () => this.ctx.robot.position.y > L[1] - 0.5,
       });

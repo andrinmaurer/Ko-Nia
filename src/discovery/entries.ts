@@ -734,7 +734,7 @@ export const ENTRIES: EntryDef[] = [
     appearance: "A strangler fig that has wrapped the lobby's marble columns in a net of grey roots, its crown spreading across the lobby ceiling.",
     ancestry: "Descendant of a strangler fig. A seed lodged at the top of a column; its roots grew down to the floor, then thickened around the stone.",
     behavior: "Its roots hold the column in a tight net, and its crown spreads under the lobby ceiling. From the gallery above you can see where it started: at the very top.",
-    hints: { bio: "Closer analysis needed (Biological scan).", observe: "You see roots from down here. Look at it from the top of the column." },
+    hints: { bio: "Closer analysis needed (Biological scan).", observe: "You see roots from down here. Look down on its crown from the floor above." },
     colonyNote: "It started at the top and worked down. The opposite of everyone else in this building.",
     danger: "none",
   },

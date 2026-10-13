@@ -34,7 +34,7 @@ export const LEADS: Lead[] = [
   // Temple Hill
   { id: "temple-cedar", region: "temple", text: "A giant tree has broken through the temple hall's roof." },
   { id: "tithe-ant", region: "temple", text: "Tidy columns cross the courtyard gravel." },
-  { id: "gilded-carp", region: "temple", text: "Something large and gold moves deep in the temple pond." },
+  { id: "gilded-carp", region: "temple", text: "Something large and gold moves deep in the temple pond, under the bridge." },
   { id: "moss-tanuki", region: "temple", text: "A mossy shape sleeps on the temple gate." },
   { id: "scroll-cap", region: "temple", text: "Pale growth on the old wood inside the main hall." },
   { id: "censer-puffball", region: "temple", text: "Swollen shapes crowd the dark half of the hall. Approach carefully." },
