@@ -51,9 +51,9 @@ export function buildStairLane(scene: Scene, shadows: ShadowGenerator): void {
     roof: kit.tex("roof", 5),
     dirt: kit.tex("dirt", 5),
     wood: kit.tex("wood", 3),
-    lantern: kit.flat("stoneLanternLight", 0.9, 0.62, 0.3),
+    // Fire boxes stand empty and dark (stone lantern photo).
+    lantern: kit.flat("stoneLanternLight", 0.08, 0.07, 0.06),
   };
-  m.lantern.emissiveColor.set(0.18, 0.08, 0.02);
 
   const { z0, z1 } = LANE;
 

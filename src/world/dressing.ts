@@ -57,11 +57,11 @@ export function buildDressing(scene: Scene, shadows: ShadowGenerator): void {
     glass: flat(scene, "carGlass", 0.2, 0.24, 0.25, 0.6),
     mushroom: flat(scene, "mushroomCap", 0.86, 0.55, 0.72),
     stalk: flat(scene, "mushroomStalk", 0.85, 0.82, 0.76),
-    lantern: flat(scene, "lantern", 0.75, 0.22, 0.14),
+    lantern: flat(scene, "lantern", 0.56, 0.25, 0.18),
     cloth: flat(scene, "noren", 0.2, 0.26, 0.36),
     water: scene.getMaterialByName("water") as StandardMaterial,
   };
-  m.lantern.emissiveColor = new Color3(0.25, 0.06, 0.02);
+  // Unlit, sun-faded paper: nothing in the abandoned street carries electric light.
   m.mushroom.emissiveColor = new Color3(0.12, 0.04, 0.1);
 
   buildPoles(scene, r, put, m);

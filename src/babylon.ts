@@ -31,6 +31,7 @@ import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder"
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
+import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
@@ -43,6 +44,7 @@ export const MeshBuilder = {
   CreateDisc,
   CreateGround,
   CreatePlane,
+  CreateRibbon,
   CreateSphere,
   CreateTorus,
   CreateTube,

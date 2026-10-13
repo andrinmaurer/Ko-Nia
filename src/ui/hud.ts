@@ -41,6 +41,8 @@ export class Hud {
   private readonly toastQueue: { title: string; name: string; opts: ToastOptions }[] = [];
   private toastTimer = 0;
   private consoleKey = "";
+  /** Called when a toast appears, a notice shows or the shutter fires, so they can make a sound. */
+  onSound?: (kind: "toast" | "notice" | "shutter", text: string) => void;
 
   constructor() {
     this.root = document.getElementById("hud")!;
@@ -93,6 +95,7 @@ export class Hud {
       this.el.toastField.textContent = t.opts.field ?? "";
       this.el.toast.classList.add("show");
       this.toastTimer = 4;
+      this.onSound?.("toast", t.title);
     }
   }
 
@@ -118,6 +121,7 @@ export class Hud {
     this.el.notice.textContent = text;
     this.el.notice.classList.add("show");
     this.noticeTimer = 2.5;
+    this.onSound?.("notice", text);
   }
 
   toast(title: string, name: string, opts: ToastOptions = {}): void {
@@ -163,6 +167,7 @@ export class Hud {
   reducedMotion = false;
 
   shutter(): void {
+    this.onSound?.("shutter", "");
     if (this.reducedMotion) return;
     const s = this.el.shutter;
     s.classList.remove("flash");

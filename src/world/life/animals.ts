@@ -9,7 +9,7 @@ import {
 } from "../../babylon";
 import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { mat } from "./materials";
-import { Form, organic, hookbillVisual, drainbackVisual, mantisVisual, predecessorVisual } from "./visuals";
+import { Form, cutout, organic, hookbillVisual, drainbackVisual, mantisVisual, predecessorVisual } from "./visuals";
 
 /** The MVP animals plus the dangerous Vault Mantis. */
 export function createAnimals(ctx: GameContext, shadows: ShadowGenerator): LifeForm[] {
@@ -154,8 +154,12 @@ class LanternMoths implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const wingMat = organic(scene,"moth-wing","#bfb5bd","leaf");
-    this.markMat = mat(scene, "mothMark", 0.3, 0.3, 0.25);
+    // Lantern Moth sheet: translucent cream wings with lilac margins, cyan eyespots and fine veins,
+    // a fuzzy pale thorax, a blue-green banded abdomen that glows at night, and feathery antennae.
+    const foreMat = cutout(scene, "lantern-moth-forewing", 128, (c, s) => mothWing(c, s, true));
+    const hindMat = cutout(scene, "lantern-moth-hindwing", 128, (c, s) => mothWing(c, s, false));
+    const fuzz = organic(scene, "lantern-moth-fuzz", "#d6cab4", "fur");
+    this.markMat = mat(scene, "mothMark", 0.48, 0.72, 0.68);
     for (let i = 0; i < 12; i++) {
       const node = new TransformNode(`moth${i}`, scene);
       const rest = new Vector3(-5.5 + (i % 3) * 0.9, 5.5, -2.8 + Math.floor(i / 3) * 1.9);
@@ -163,21 +167,28 @@ class LanternMoths implements LifeForm {
       const wings: Mesh[] = [];
       for (const side of [-1,1]) {
         const form = new Form(scene,"lantern-moth-wing");
-        const fore=form.ellipsoid([side*.045,0,.028],[.095,.007,.12],wingMat,6);fore.rotation.y=side*.3;
-        const hind=form.ellipsoid([side*.035,0,-.045],[.08,.007,.085],wingMat,6);hind.rotation.y=-side*.3;
-        const wing=form.finish()[0];wing.parent=node;wing.position.x=side*.014;wings.push(wing);
+        // Wing planes lie flat (xz); the painted shape points outwards, mirrored per side.
+        form.plane([side*.1,0,.02],[.2,.17],[Math.PI/2,side>0?0:Math.PI,0],foreMat);
+        form.plane([side*.075,-.002,-.07],[.15,.13],[Math.PI/2,side>0?0:Math.PI,0],hindMat);
+        const meshes=form.finish();
+        const wing=Mesh.MergeMeshes(meshes,true,true,undefined,false,true)!;
+        wing.name="lantern-moth-wing";wing.parent=node;wing.position.x=side*.012;wings.push(wing);
       }
       const form=new Form(scene,"lantern-moth-body");
-      form.ellipsoid([0,0,0],[.025,.028,.085],this.markMat,6);
+      form.ellipsoid([0,0,.035],[.04,.04,.055],fuzz,6);
+      form.ellipsoid([0,0,.07],[.028,.028,.028],fuzz,5);
+      for(let j=0;j<4;j++) form.ellipsoid([0,-.002,-.01-j*.022],[.032-j*.004,.028-j*.003,.026],this.markMat,5);
       for(const side of [-1,1]) {
-        form.branch([[side*.006,0,.035],[side*.025,.012,.075]],.002,this.markMat);
-        for(let j=0;j<3;j++) form.branch([[side*.008,-.007,j*.022-.023],[side*.024,-.024,j*.025-.03]],.0015,this.markMat);
+        form.taper([[side*.008,.006,.08],[side*.03,.03,.11],[side*.05,.035,.13]],.004,.002,fuzz,3);
+        for(let k=0;k<4;k++) form.taper([[side*(.012+k*.009),.014+k*.005,.086+k*.011],[side*(.02+k*.009),.02+k*.005,.09+k*.011]],.0015,.001,fuzz,3);
+        for(let j=0;j<3;j++) form.taper([[side*.012,-.012,j*.022+.015],[side*.04,-.03,j*.025+.01]],.0025,.0015,fuzz,3);
       }
-      const body=form.finish(node)[0];
+      // Legs and antennae share the thorax material: two draw calls per body, not three.
+      const body=form.finish(node);
       this.moths.push({ node, wings, rest, phase: i * 0.7, radius: 1 + (i % 4) * 0.45 });
       this.scannables.push({
         entryId: "lantern-moth",
-        meshes: [...wings, body],
+        meshes: [...wings, ...body],
         getPosition: () => node.position,
         isConditionMet: () => this.ctx.time.isNight && this.swarm > 0.95,
       });
@@ -468,4 +479,23 @@ export function createStaticDiscoveries(ctx: GameContext): Scannable[] {
     { entryId: "art-torii", meshes: torii, getPosition: at(torii) },
     ...statues.map((s) => ({ entryId: "art-statue", meshes: [s], getPosition: () => s.getAbsolutePosition() })),
   ];
+}
+
+/** Moth wing cut-out pointing right: cream membrane, lilac margin, cyan eyespot, branching veins. */
+function mothWing(c: CanvasRenderingContext2D, s: number, fore: boolean): void {
+  const outline = () => {
+    c.beginPath(); c.moveTo(4, s * .5);
+    if (fore) { c.bezierCurveTo(s * .3, s * .08, s * .85, s * .05, s - 4, s * .3); c.bezierCurveTo(s * .9, s * .6, s * .5, s * .85, 4, s * .55); }
+    else { c.bezierCurveTo(s * .3, s * .2, s * .8, s * .25, s * .92, s * .55); c.bezierCurveTo(s * .7, s * .92, s * .3, s * .85, 4, s * .55); }
+    c.closePath();
+  };
+  outline(); c.fillStyle = "#c39fc2"; c.fill();
+  c.save(); outline(); c.clip();
+  c.fillStyle = "#ece2cc"; c.beginPath(); c.ellipse(s * .38, s * .48, s * .42, s * .28, -.15, 0, 7); c.fill();
+  c.strokeStyle = "rgba(150,120,80,.7)"; c.lineWidth = 1.2;
+  for (let k = 0; k < 6; k++) { c.beginPath(); c.moveTo(6, s * .52); c.quadraticCurveTo(s * .5, s * (.3 + k * .07), s, s * (.15 + k * .14)); c.stroke(); }
+  c.fillStyle = "#6fd2d0"; c.beginPath(); c.arc(s * .55, s * (fore ? .38 : .58), s * .07, 0, 7); c.fill();
+  c.fillStyle = "#f6f2e6"; c.beginPath(); c.arc(s * .55, s * (fore ? .38 : .58), s * .025, 0, 7); c.fill();
+  for (let k = 0; k < 4; k++) { c.fillStyle = "rgba(246,240,226,.9)"; c.beginPath(); c.arc(s * (.72 + k * .06), s * (fore ? .2 + k * .08 : .5 + k * .06), 2.5, 0, 7); c.fill(); }
+  c.restore();
 }

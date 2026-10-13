@@ -3,7 +3,7 @@ import type { GameContext, LifeForm, Scannable } from "../../game/context";
 import { ARCADE, ARCADE_AXIS, waterAt, type FloodedArcade } from "../floodedArcade";
 import { rng } from "../textures";
 import { mat } from "./materials";
-import { Form, organic } from "./visuals";
+import { cutout, Form, organic } from "./visuals";
 
 /** Flooded Arcade species and water rules (docs/blocks/03_NEXT_BLOCKS_PROPOSAL.md). */
 export function createArcadeLife(ctx: GameContext, shadows: ShadowGenerator, world: FloodedArcade): LifeForm[] {
@@ -94,8 +94,9 @@ class GlasswortReeds implements LifeForm {
 
   constructor(private readonly ctx: GameContext, world: FloodedArcade) {
     const scene = ctx.scene;
-    const stem = organic(scene, "glasswort-stem", "#5f6f45", "leaf");
-    const tip = organic(scene, "glasswort-tip", "#8a7d55", "fur");
+    // Glasswort Reed photo: dense, tall straw-coloured blades, green at the foot, with pale plumes.
+    const blades = cutout(scene, "glasswort-reed", 512, reedCard);
+    const stem = organic(scene, "glasswort-stem", "#a49564", "leaf");
     const r = rng(442);
     const spots: { p: Vector3; onGlass: boolean }[] = [
       ...world.glassPiles.map((p) => ({ p, onGlass: true })),
@@ -107,17 +108,14 @@ class GlasswortReeds implements LifeForm {
       const node = new TransformNode(`glasswortReed${i}`, scene);
       node.position.copyFrom(s.p);
       const f = new Form(scene, "glasswort");
-      const blades = s.onGlass ? 26 : 16;
-      for (let k = 0; k < blades; k++) {
-        const a = r() * Math.PI * 2;
-        const d = r() * (s.onGlass ? 1.1 : 0.7);
-        const h = 1.2 + r() * 1.1;
-        const x = Math.cos(a) * d;
-        const z = Math.sin(a) * d;
-        const lean = (r() - 0.5) * 0.3;
-        f.branch([[x, 0, z], [x + lean * 0.5, h * 0.6, z], [x + lean, h, z + lean * 0.4]], 0.018, stem);
-        // Seed heads glint like the glass they grow in.
-        if (r() < 0.45) f.ellipsoid([x + lean, h + 0.1, z + lean * 0.4], [0.05, 0.22, 0.05], tip, 4);
+      const w = s.onGlass ? 2.4 : 1.7;
+      const h = s.onGlass ? 2.5 : 2.1;
+      // Three crossed cards make the bed; a few solid blades in front give it depth.
+      for (let k = 0; k < 3; k++) f.plane([0, h / 2, 0], [w, h], [0, (k / 3) * Math.PI + r() * 0.3, 0], blades);
+      for (let k = 0; k < 7; k++) {
+        const a = r() * Math.PI * 2, d = 0.2 + r() * w * 0.35, x = Math.cos(a) * d, z = Math.sin(a) * d;
+        const tall = h * (0.7 + r() * 0.35), lean = (r() - 0.5) * 0.5;
+        f.taper([[x, 0, z], [x + lean * 0.3, tall * 0.6, z], [x + lean, tall, z + lean * 0.3]], 0.018, 0.004, stem, 4);
       }
       const meshes = f.finish(node);
       for (const mesh of meshes) mesh.isPickable = true;
@@ -160,49 +158,65 @@ class GutterLilies implements LifeForm {
 
   constructor(private readonly ctx: GameContext) {
     const scene = ctx.scene;
-    const pad = organic(scene, "gutter-lily-pad", "#4c6b3a", "leaf");
-    pad.backFaceCulling = false;
-    const petal = organic(scene, "gutter-lily-petal", "#d8d0b8", "shell");
-    const heart = organic(scene, "gutter-lily-heart", "#b8913c", "fur");
+    // Gutter Lily photo: broad pads, some green and some rust-red, around a white water-lily with a gold heart.
+    const pads = [organic(scene, "gutter-lily-pad", "#3f5c2c", "leaf"), organic(scene, "gutter-lily-pad-red", "#6e3526", "leaf")];
+    for (const p of pads) p.backFaceCulling = false;
+    const petal = organic(scene, "gutter-lily-petal", "#f1ece0", "shell");
+    const heart = organic(scene, "gutter-lily-heart", "#d9a93a", "fur");
     const r = rng(77);
     for (const [i, s] of LILY_SPOTS.entries()) {
       const node = new TransformNode(`gutterLily${i}`, scene);
       node.position.set(s.x, ARCADE.water + 0.02, s.z);
-      const pads: Mesh[] = [];
-      for (let k = 0; k < 4; k++) {
-        const a = (k / 4) * Math.PI * 2 + r();
-        const d = 0.45 + r() * 0.5;
+      const halves: Mesh[] = [];
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 + r();
+        const d = 0.55 + r() * 0.5;
         const hinge = new TransformNode(`lilyHinge${i}_${k}`, scene);
         hinge.parent = node;
-        hinge.position.set(Math.cos(a) * d * 0.4, 0, Math.sin(a) * d * 0.4);
+        hinge.position.set(Math.cos(a) * d * 0.6, 0, Math.sin(a) * d * 0.6);
         hinge.rotation.y = -a + Math.PI / 2;
+        const radius = 0.42 + r() * 0.22;
+        const padMat = pads[r() < 0.45 ? 1 : 0];
         // Each leaf is two halves hinged along the midrib; folding lifts both halves.
+        // A sliver is left out of one half: the notch every lily pad has.
         for (const side of [-1, 1]) {
-          const half = MeshBuilder.CreateDisc(`lilyPad${i}`, { radius: 0.32 + r() * 0.12, tessellation: 12, arc: 0.5 }, scene);
+          const half = MeshBuilder.CreateDisc(`lilyPad${i}`, { radius, tessellation: 14, arc: side < 0 ? 0.5 : 0.46 }, scene);
           half.rotation.x = Math.PI / 2;
           half.rotation.y = side < 0 ? 0 : Math.PI;
           half.bakeCurrentTransformIntoVertices();
-          half.material = pad;
+          half.material = padMat;
           half.parent = hinge;
           half.metadata = { side };
-          pads.push(half);
+          halves.push(half);
         }
       }
-      const flower = MeshBuilder.CreateSphere(`lilyFlower${i}`, { diameter: 0.3, segments: 6, slice: 0.6 }, scene);
-      flower.scaling.set(1, 0.7, 1);
-      flower.rotation.x = Math.PI;
-      flower.position.y = 0.1;
+      // The flower: two rings of pointed petals opening out of a gold heart.
+      const parts: Mesh[] = [];
+      for (const [ring, n, len, tilt] of [[0, 9, 0.2, 0.45], [1, 8, 0.16, 0.95]] as const) {
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * Math.PI * 2 + ring * 0.35;
+          const p = MeshBuilder.CreateSphere(`lilyFlower${i}`, { diameter: 1, segments: 3 }, scene);
+          p.scaling.set(0.075, 0.025, len);
+          p.setPivotPoint(new Vector3(0, 0, -0.5));
+          p.position.set(Math.sin(a) * (0.03 + len * 0.15), 0.02 + ring * 0.03, Math.cos(a) * (0.03 + len * 0.15));
+          p.rotation.set(-tilt, a, 0);
+          parts.push(p);
+        }
+      }
+      const flower = Mesh.MergeMeshes(parts, true)!;
+      flower.name = `lilyFlower${i}`;
       flower.material = petal;
       flower.parent = node;
-      const centreBud = MeshBuilder.CreateSphere(`lilyHeart${i}`, { diameter: 0.1, segments: 4 }, scene);
-      centreBud.position.y = 0.12;
+      const centreBud = MeshBuilder.CreateSphere(`lilyHeart${i}`, { diameter: 0.11, segments: 5 }, scene);
+      centreBud.scaling.y = 0.6;
+      centreBud.position.y = 0.06;
       centreBud.material = heart;
       centreBud.parent = node;
-      const patch = { node, pads, flower, open: 1, closedOnce: false, reopenedAt: -100 };
+      const patch = { node, pads: halves, flower, open: 1, closedOnce: false, reopenedAt: -100 };
       this.patches.push(patch);
       this.scannables.push({
         entryId: "gutter-lily",
-        meshes: [...pads, flower, centreBud],
+        meshes: [...halves, flower, centreBud],
         getPosition: () => node.position.add(new Vector3(0, 0.15, 0)),
         isConditionMet: () => patch.closedOnce && patch.open > 0.95 && this.clock - patch.reopenedAt < 10,
       });
@@ -229,7 +243,7 @@ class GutterLilies implements LifeForm {
         const side = (m.metadata as { side?: number } | null)?.side;
         if (side) m.rotation.x = side * fold;
       }
-      p.flower.scaling.set(0.4 + p.open * 0.6, 0.7, 0.4 + p.open * 0.6);
+      p.flower.scaling.set(0.4 + p.open * 0.6, 0.6 + p.open * 0.4, 0.4 + p.open * 0.6);
     }
   }
 }
@@ -272,43 +286,55 @@ class WaderHeron implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const grey = organic(scene, "heron-grey", "#7d8483", "fur");
-    const pale = organic(scene, "heron-pale", "#c9c6b8", "fur");
-    const dark = organic(scene, "heron-dark", "#2b2f30", "fur");
-    const beak = organic(scene, "heron-beak", "#9b8648");
+    // Wader Heron photo: a grey heron. Ash-grey back and folded wings with dark flight feathers, white
+    // neck in a tall S, black crest plume, long yellow dagger bill, long yellowish legs.
+    const grey = organic(scene, "heron-grey", "#8a908f", "feather");
+    const wingGrey = organic(scene, "heron-wing", "#6b7273", "feather");
+    const pale = organic(scene, "heron-pale", "#e2e0d6", "feather");
+    const dark = organic(scene, "heron-dark", "#24282a", "feather");
+    const beak = organic(scene, "heron-beak", "#c9a243", "shell");
+    const legs = organic(scene, "heron-legs", "#9c8a5a", "scales");
     const eye = mat(scene, "wildlifeEye", 0.025, 0.035, 0.025, 0.65);
     this.node = new TransformNode("waderHeron", scene);
     const body = new Form(scene, "heron-body");
-    body.ellipsoid([0, 1.05, 0], [0.32, 0.36, 0.62], grey);
-    body.ellipsoid([0, 1.1, -0.42], [0.2, 0.12, 0.42], dark);
+    body.ellipsoid([0, 1.02, -0.02], [0.3, 0.34, 0.7], grey).rotation.x = -0.35;
+    body.ellipsoid([0, 1.08, 0.24], [0.24, 0.3, 0.3], pale).rotation.x = -0.4;
     for (const side of [-1, 1]) {
-      body.branch([[side * 0.07, 0.95, 0], [side * 0.07, 0.48, 0.03], [side * 0.07, 0.02, -0.03]], 0.018, beak);
-      body.branch([[side * 0.07, 0.02, -0.03], [side * 0.07, 0.01, 0.16]], 0.01, beak);
+      // Folded wing, its dark primaries crossing over the tail.
+      body.ellipsoid([side * 0.13, 1.04, -0.08], [0.08, 0.3, 0.66], wingGrey).rotation.x = -0.3;
+      body.ellipsoid([side * 0.08, 0.92, -0.45], [0.06, 0.08, 0.34], dark).rotation.x = -0.15;
+      // Black shoulder patch.
+      body.ellipsoid([side * 0.12, 1.18, 0.28], [0.06, 0.1, 0.1], dark, 6);
+      body.taper([[side * 0.07, 0.95, 0], [side * 0.07, 0.5, 0.04], [side * 0.07, 0.03, -0.02]], 0.03, 0.016, legs, 5);
+      for (const toe of [-0.5, 0, 0.5]) body.taper([[side * 0.07, 0.02, -0.02], [side * 0.07 + Math.sin(toe) * 0.14, 0.01, -0.02 + Math.cos(toe) * 0.14]], 0.012, 0.006, legs, 4);
     }
     const parts = body.finish(this.node);
     // The neck folds down for a strike: a joint at the base of the neck.
     this.neck = new TransformNode("heronNeck", scene);
     this.neck.parent = this.node;
-    this.neck.position.set(0, 1.25, 0.42);
+    this.neck.position.set(0, 1.18, 0.36);
     const neck = new Form(scene, "heron-neck");
-    neck.branch([[0, 0, 0], [0, 0.32, 0.08], [0, 0.52, 0.02]], 0.06, pale);
-    neck.ellipsoid([0, 0.6, 0.06], [0.12, 0.13, 0.17], pale);
-    neck.ellipsoid([0, 0.66, 0.0], [0.04, 0.03, 0.2], dark);
-    neck.branch([[0, 0.59, 0.14], [0, 0.56, 0.5]], 0.022, beak);
-    for (const side of [-1, 1]) neck.ellipsoid([side * 0.06, 0.62, 0.1], [0.025, 0.025, 0.025], eye);
+    neck.taper([[0, -0.05, -0.04], [0, 0.18, 0.13], [0, 0.36, 0.1], [0, 0.48, -0.01], [0, 0.6, 0.04]], 0.085, 0.045, pale, 7);
+    // Black streaks down the front of the neck.
+    neck.taper([[0, 0.12, 0.2], [0, 0.32, 0.17], [0, 0.44, 0.06]], 0.012, 0.006, dark, 4);
+    neck.ellipsoid([0, 0.64, 0.08], [0.1, 0.1, 0.18], pale);
+    neck.ellipsoid([0, 0.68, 0.04], [0.11, 0.04, 0.17], dark, 6);
+    neck.taper([[0, 0.68, -0.03], [0, 0.66, -0.2], [0, 0.6, -0.32]], 0.016, 0.003, dark, 4);
+    neck.taper([[0, 0.63, 0.15], [0, 0.6, 0.5]], 0.03, 0.004, beak, 6);
+    for (const side of [-1, 1]) neck.ellipsoid([side * 0.045, 0.655, 0.12], [0.022, 0.022, 0.022], eye, 5);
     parts.push(...neck.finish(this.neck));
     this.fish = MeshBuilder.CreateSphere("heronFish", { diameter: 0.2, segments: 4 }, scene);
     this.fish.scaling.set(0.35, 0.4, 1);
     this.fish.parent = this.neck;
-    this.fish.position.set(0, 0.56, 0.5);
+    this.fish.position.set(0, 0.6, 0.5);
     this.fish.material = organic(scene, "heron-fish", "#a7a395", "shell");
     this.fish.isVisible = false;
     this.wings = [];
     for (const side of [-1, 1]) {
-      const wing = MeshBuilder.CreateBox("heronWing", { width: 0.9, height: 0.04, depth: 0.5 }, scene);
-      wing.setPivotPoint(new Vector3(-side * 0.45, 0, 0));
-      wing.position.set(side * 0.62, 1.15, -0.05);
-      wing.material = grey;
+      const wing = MeshBuilder.CreateBox("heronWing", { width: 1.1, height: 0.03, depth: 0.55 }, scene);
+      wing.setPivotPoint(new Vector3(-side * 0.55, 0, 0));
+      wing.position.set(side * 0.7, 1.15, -0.05);
+      wing.material = wingGrey;
       wing.parent = this.node;
       wing.isVisible = false;
       this.wings.push(wing);
@@ -430,7 +456,7 @@ class MudskipperShoals implements LifeForm {
 
   constructor(private readonly ctx: GameContext, world: FloodedArcade) {
     const scene = ctx.scene;
-    const skin = organic(scene, "mudskipper-skin", "#6b6249", "shell");
+    const skin = organic(scene, "mudskipper-skin", "#6a5c45", "scales");
     const r = rng(9);
     // Two shoals, at counters on either side of the crossing.
     const pick = [
@@ -443,14 +469,18 @@ class MudskipperShoals implements LifeForm {
       for (let i = 0; i < 7; i++) {
         const node = new TransformNode("mudskipper", scene);
         const f = new Form(scene, "mudskipper");
-        // One material per fish keeps the shoal to a handful of draw calls.
-        f.ellipsoid([0, 0.04, 0], [0.07, 0.06, 0.2], skin, 6);
+        // Mudskipper photo: speckled tan body with a blunt head, bulging eyes on top, two sail fins,
+        // and pectoral fins it walks on. One material per fish keeps the shoal to a handful of draw calls.
+        f.taper([[0, 0.055, 0.12], [0, 0.06, 0.03], [0, 0.05, -0.08], [0, 0.04, -0.18]], 0.06, 0.014, skin, 5);
+        f.ellipsoid([0, 0.055, 0.13], [0.12, 0.1, 0.14], skin, 3);
         for (const side of [-1, 1]) {
-          f.ellipsoid([side * 0.03, 0.09, 0.07], [0.028, 0.028, 0.028], skin, 4);
-          const pec = f.ellipsoid([side * 0.06, 0.02, 0.03], [0.07, 0.01, 0.05], skin, 4);
-          pec.rotation.z = side * 0.4;
+          f.ellipsoid([side * 0.025, 0.115, 0.15], [0.042, 0.05, 0.042], skin, 3);
+          const pec = f.ellipsoid([side * 0.07, 0.02, 0.07], [0.08, 0.015, 0.06], skin, 3);
+          pec.rotation.z = side * 0.5;
         }
-        f.ellipsoid([0, 0.07, -0.05], [0.01, 0.05, 0.1], skin, 4);
+        f.ellipsoid([0, 0.12, 0.02], [0.008, 0.08, 0.09], skin, 3);
+        f.ellipsoid([0, 0.09, -0.08], [0.008, 0.05, 0.1], skin, 3);
+        f.ellipsoid([0, 0.04, -0.22], [0.008, 0.07, 0.07], skin, 3);
         const parts = f.finish(node);
         meshes.push(...parts);
         node.metadata = { dx: (r() - 0.5) * 2.6, dz: (r() - 0.5) * 0.5, phase: r() * 6, yaw: r() * Math.PI * 2 };
@@ -509,23 +539,33 @@ class SnappingEel implements LifeForm {
 
   constructor(private readonly ctx: GameContext, shadows: ShadowGenerator) {
     const scene = ctx.scene;
-    const skin = organic(scene, "snapping-eel-skin", "#3a4031", "shell");
-    skin.specularColor = new Color3(0.25, 0.25, 0.2);
-    const belly = organic(scene, "snapping-eel-head", "#4a4436", "shell");
-    const finMat = organic(scene, "snapping-eel-fin", "#5b4a33", "leaf");
-    finMat.backFaceCulling = false;
+    // Snapping Eel photo: a thick, dark, glossy body mottled lighter, a broad flat head with a heavy
+    // jaw, and a low ribbed fin running along the back.
+    const skin = organic(scene, "snapping-eel-skin", "#2c2e25", "scales");
+    skin.specularColor = new Color3(0.12, 0.12, 0.1);
+    const finMat = cutout(scene, "snapping-eel-fin", 256, eelFin);
     for (let i = 0; i < SnappingEel.SEGMENTS; i++) {
       const t = i / (SnappingEel.SEGMENTS - 1);
-      const d = i === 0 ? 0.42 : 0.4 * (1 - t * 0.7);
-      const seg = MeshBuilder.CreateSphere("eelSegment", { diameter: 1, segments: 6 }, scene);
-      seg.scaling.set(d, d * 0.8, i === 0 ? 0.75 : 0.5);
-      seg.material = i === 0 ? belly : skin;
+      const d = 0.44 * (1 - t * 0.75);
+      const f = new Form(scene, "eelSegment");
+      if (i === 0) {
+        // Head: flat and wide, the lower jaw slightly open, small eyes high on the skull.
+        f.ellipsoid([0, 0.02, 0.02], [0.42, 0.26, 0.62], skin);
+        f.ellipsoid([0, -0.08, 0.1], [0.34, 0.12, 0.5], skin, 6).rotation.x = 0.12;
+        for (const side of [-1, 1]) f.ellipsoid([side * 0.15, 0.12, 0.14], [0.06, 0.05, 0.06], skin, 5);
+      } else {
+        // Long overlapping sections so the body reads as one rope, not beads.
+        f.ellipsoid([0, 0, 0], [d, d * 0.85, SnappingEel.SPACING * 2.8], skin, 7);
+        if (i > 1) f.ellipsoid([0, d * 0.42, 0], [0.025, d * 0.45, SnappingEel.SPACING * 1.6], skin, 4);
+      }
+      const seg = f.finish()[0];
+      seg.name = "eelSegment";
       seg.isPickable = true;
       shadows.addShadowCaster(seg);
       this.segments.push(seg);
     }
     // The fin that breaks the surface: the warning.
-    this.fin = MeshBuilder.CreatePlane("eelFin", { width: 1.1, height: 0.3 }, scene);
+    this.fin = MeshBuilder.CreatePlane("eelFin", { width: 1.1, height: 0.3, sideOrientation: Mesh.DOUBLESIDE }, scene);
     this.fin.material = finMat;
     this.rippleMat = mat(scene, "eelRipple", 0.85, 0.9, 0.88, 0.4);
     this.rippleMat.alpha = 0;
@@ -662,4 +702,52 @@ export function createArcadeDiscoveries(ctx: GameContext, world: FloodedArcade):
     { entryId: "art-toy-boat", meshes: world.toyBoat, getPosition: centre(world.toyBoat[0]) },
     { entryId: "origin-tracks", meshes: world.tracks, getPosition: centre(world.tracks[0]) },
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Painted cut-outs.
+
+/** Reed bed card: blades rising from the foot, green below and straw above, some with pale plumes. */
+function reedCard(c: CanvasRenderingContext2D, s: number, r: () => number): void {
+  for (let i = 0; i < 150; i++) {
+    const x = s * (0.08 + r() * 0.84), top = s * (0.02 + r() * 0.4), bend = (r() - 0.5) * s * 0.25;
+    const g = c.createLinearGradient(0, s, 0, top);
+    const k = r();
+    g.addColorStop(0, `rgb(${70 + k * 20},${86 + k * 20},${44})`);
+    g.addColorStop(0.45, `rgb(${120 + k * 40},${124 + k * 30},${70 + k * 10})`);
+    g.addColorStop(1, `rgb(${196 + k * 30},${178 + k * 26},${122 + k * 20})`);
+    c.fillStyle = g;
+    const wd = 2 + r() * 4;
+    c.beginPath();
+    c.moveTo(x - wd, s);
+    c.quadraticCurveTo(x + bend * 0.3, (s + top) / 2, x + bend, top);
+    c.quadraticCurveTo(x + bend * 0.3 + wd * 0.4, (s + top) / 2, x + wd, s);
+    c.fill();
+    if (r() < 0.3) {
+      // Feathery seed plume.
+      c.fillStyle = `rgba(${215 + k * 25},${200 + k * 20},${160},0.95)`;
+      for (let j = 0; j < 14; j++) {
+        c.beginPath();
+        c.ellipse(x + bend + (r() - 0.5) * 8, top + j * 3 - 6, 2.5, 5, (r() - 0.5) * 0.8, 0, Math.PI * 2);
+        c.fill();
+      }
+    }
+  }
+}
+
+/** The snapping eel's dorsal fin, ribbed, for the part that breaks the surface. */
+function eelFin(c: CanvasRenderingContext2D, s: number, r: () => number): void {
+  c.fillStyle = "#2f3027";
+  c.beginPath();
+  c.moveTo(0, s * 0.95);
+  c.quadraticCurveTo(s * 0.15, s * 0.2, s * 0.45, s * 0.12);
+  c.quadraticCurveTo(s * 0.8, s * 0.2, s, s * 0.95);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = "rgba(110,98,70,.6)";
+  c.lineWidth = 2;
+  for (let i = 0; i < 18; i++) {
+    const x = s * (0.05 + i * 0.05);
+    c.beginPath(); c.moveTo(x, s * 0.95); c.lineTo(x + s * 0.06 + r() * 4, s * (0.2 + Math.abs(i - 8) * 0.04)); c.stroke();
+  }
 }
