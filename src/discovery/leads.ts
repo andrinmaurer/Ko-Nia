@@ -15,6 +15,7 @@ export const REGION_LABELS: Record<RegionId, string> = {
   street: "Shrine Street",
   temple: "Temple Hill",
   arcade: "Flooded Arcade",
+  station: "Sunken Station",
 };
 
 export const LEADS: Lead[] = [
@@ -46,6 +47,15 @@ export const LEADS: Lead[] = [
   { id: "snapping-eel", region: "arcade", text: "Something with a ragged fin patrols the canal. Don't wade in." },
   { id: "art-flood-line", region: "arcade", text: "Someone wrote on the arcade's main pillar, again and again." },
   { id: "origin-tracks", region: "arcade", text: "Tracks in the mud near the station stairs." },
+  // Sunken Station
+  { id: "root-curtain", region: "station", text: "Pale threads hang from the ceiling. Some reach all the way down." },
+  { id: "shaft-fern", region: "station", text: "Green grows where the daylight falls through. Only there." },
+  { id: "cave-swift", region: "station", text: "Small shapes nest over the dark end of the track." },
+  { id: "ticket-beetle", region: "station", text: "Something rustles inside the ticket machines." },
+  { id: "pale-crayfish", region: "station", text: "Something moves in the drip pools where no light reaches." },
+  { id: "tunnel-hound", region: "station", text: "A clicking in the tunnel behind the platform. Don't run down there." },
+  { id: "art-departure-board", region: "station", text: "The board over the ticket gates still shows one line." },
+  { id: "origin-charger", region: "station", text: "At the far end of the platform, something was wired into the wall." },
 ];
 
 /**

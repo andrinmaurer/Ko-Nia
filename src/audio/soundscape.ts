@@ -62,6 +62,11 @@ const CAPTION_CUES: { match: RegExp; entry?: string; play: Recipe[]; bus?: Bus }
   { match: /SNAP!/, play: [cue.snap] },
   { match: /Too deep/, play: [cue.strain] },
   { match: /offering box/, entry: "moss-tanuki", play: [cue.scratch, cue.chuff] },
+  { match: /Low clicking/, entry: "tunnel-hound", play: [cue.houndClicks] },
+  { match: /Clicking, faster/, entry: "tunnel-hound", play: [cue.houndAlert] },
+  { match: /Knocked flat/, play: [cue.thud] },
+  { match: /twittering pours/, entry: "cave-swift", play: [cue.swiftChatter, cue.wingFlaps] },
+  { match: /ticket slot rattles/, entry: "ticket-beetle", play: [cue.scratch] },
 ];
 
 /** Occasional calls from animals nearby, so the city feels inhabited between events. */
@@ -72,6 +77,8 @@ const IDLE_CALLS: { entry: string; when: "day" | "night" | "any"; every: [number
   { entry: "mudskipper-shoal", when: "day", every: [8, 20], play: cue.plop },
   { entry: "moss-tanuki", when: "night", every: [25, 50], play: cue.chuff },
   { entry: "drainback", when: "any", every: [30, 70], play: cue.scratch },
+  { entry: "cave-swift", when: "day", every: [15, 35], play: cue.swiftChatter },
+  { entry: "tunnel-hound", when: "night", every: [12, 25], play: cue.houndClicks },
 ];
 
 const HEARING_RANGE = 35;
