@@ -178,9 +178,10 @@ class LobbyFigs implements LifeForm {
         for (let i = 0; i < 7; i++) {
           const a = (i / 7) * Math.PI * 2;
           const d = 1.2 + r() * 1.6;
-          f.ellipsoid([x + Math.cos(a) * d, top - 0.4 - r() * 0.8, c.z + Math.sin(a) * d * 0.8], [2.2, 1, 1.8], leafMat, 6);
+          f.ellipsoid([x + Math.cos(a) * d, top - 0.4 - r() * 0.5, c.z + Math.sin(a) * d * 0.8], [1.1, 0.5, 0.9], leafMat, 6);
           f.taper([[x, top - 0.3, c.z], [x + Math.cos(a) * d * 1.3, top - 0.6, c.z + Math.sin(a) * d]], 0.08, 0.03, root, 5);
-          for (let j = 0; j < 3; j++) f.plane([x + Math.cos(a) * (d + 0.6), top - 1 - r() * 0.8, c.z + Math.sin(a) * d * 0.8], [1.3, 1.1], [r() - 0.5, r() * 3, 0], leaf);
+          // Leaf sprays hide the solid core and give the crown a ragged edge.
+          for (let j = 0; j < 7; j++) f.plane([x + Math.cos(a) * (d + r() * 1.2 - 0.3), top - 0.5 - r() * 1.1, c.z + Math.sin(a) * d * 0.8 + (r() - 0.5)], [1.3, 1.1], [r() - 0.5, r() * 3, 0], leaf);
         }
       } else {
         for (let i = 0; i < 4; i++) f.plane([x + (r() - 0.5) * 1.4, top - 0.8 - r(), c.z + (r() - 0.5) * 1.4], [1, 0.9], [r() - 0.5, r() * 3, 0], leaf);

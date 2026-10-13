@@ -967,7 +967,7 @@ function buildSurroundings(kit: Kit, scene: Scene, m: Mats, r: () => number): vo
   // South: behind the tower.
   for (let x = p.x0 - 12; x < p.x1; x += 17) block(x, x + 16, p.z0 - 14, p.z0, 10 + r() * 12);
   // A few nearer towers to the east and south, real geometry (the haze takes the rest).
-  for (const [x, z, w, h] of [[700, -60, 26, 120], [740, 20, 22, 96], [690, 70, 18, 70], [620, -110, 24, 88], [780, -40, 30, 140]] as const) {
+  for (const [x, z, w, h] of [[760, -90, 26, 110], [800, 30, 22, 90], [720, 110, 18, 70], [640, -150, 24, 88], [840, -20, 30, 130]] as const) {
     tiled(kit, "districtTower", x - w / 2, x + w / 2, G - 1, G + h, z - w / 2, z + w / 2, m.windows, { cast: false, collide: false });
     const crown = MeshBuilder.CreateSphere("towerTopGarden", { diameter: w * 0.9, segments: 5 }, scene);
     crown.scaling.y = 0.35;
@@ -1054,9 +1054,9 @@ function buildSkyline(scene: Scene, r: () => number): void {
   for (let i = 0; i < 46; i++) {
     // Mostly east and south, where the district goes on.
     const a = -Math.PI * 0.55 + r() * Math.PI * 1.25;
-    const d = 220 + r() * 230;
+    const d = 300 + r() * 260;
     const w = 14 + r() * 26;
-    const h = 50 + r() * 150 * (1 - Math.abs(a) / 3);
+    const h = 40 + r() * 120 * (1 - Math.abs(a) / 3);
     const b = MeshBuilder.CreateBox("skylineTower", { width: w, height: h, depth: w * (0.7 + r() * 0.6) }, scene);
     b.position.set(cx + Math.cos(a) * d, h / 2 - 5, cz - Math.sin(a) * d);
     b.rotation.y = r() * 0.5;
@@ -1078,7 +1078,8 @@ function buildSkyline(scene: Scene, r: () => number): void {
   scene.onBeforeRenderObservable.add(() => {
     if (!haze.isEnabled()) return;
     const f = scene.fogColor;
-    material.emissiveColor.set(f.r * 0.8, f.g * 0.84, f.b * 0.88);
+    // Darker and a little bluer than the haze around them, so they read as distance, not as walls.
+    material.emissiveColor.set(f.r * 0.7, f.g * 0.76, f.b * 0.86);
   });
 }
 
