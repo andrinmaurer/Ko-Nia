@@ -11,3 +11,9 @@ Validation: production build/typecheck, browser checks for first scan and locati
 ## Flooded Arcade
 
 All 16 Flooded Arcade entries (37–52 in `prompts.json`) have generated and reviewed photographs. The three location refinements are saved as `-v2.png` masters; their final prompts include the added composition requirements. Optimized WebPs keep stable entry-ID filenames.
+
+## Sunken Station
+
+The 17 Sunken Station photographs (53–69) were generated from the supplied `sunken-station-photo-prompts.md` and visually reviewed. PNG masters, 960 × 640 WebPs, prompt records and all 17 ID mappings are included. This brings the asset inventory to 69 photos.
+
+At integration time, the playable repository still contains 52 entries across Shrine Street, Temple Hill and Flooded Arcade. Sunken Station entry definitions and district code are not yet present on main or the published branches; its mappings are prepared for those entry IDs without adding placeholder discoveries to the existing game.

@@ -518,5 +518,175 @@
     "height": 640,
     "bytes": 189988,
     "reviewed": true
+  },
+  {
+    "id": "root-curtain",
+    "entry": "Root Curtain",
+    "image": "public/logbook/root-curtain.webp",
+    "master": "docs/art/logbook-photos/masters/53-root-curtain.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 166230,
+    "reviewed": true
+  },
+  {
+    "id": "shaft-fern",
+    "entry": "Shaft Fern",
+    "image": "public/logbook/shaft-fern.webp",
+    "master": "docs/art/logbook-photos/masters/54-shaft-fern.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 171310,
+    "reviewed": true
+  },
+  {
+    "id": "cave-swift",
+    "entry": "Cave Swift",
+    "image": "public/logbook/cave-swift.webp",
+    "master": "docs/art/logbook-photos/masters/55-cave-swift.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 154426,
+    "reviewed": true
+  },
+  {
+    "id": "ticket-beetle",
+    "entry": "Ticket Beetle",
+    "image": "public/logbook/ticket-beetle.webp",
+    "master": "docs/art/logbook-photos/masters/56-ticket-beetle.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 130712,
+    "reviewed": true
+  },
+  {
+    "id": "pale-crayfish",
+    "entry": "Pale Crayfish",
+    "image": "public/logbook/pale-crayfish.webp",
+    "master": "docs/art/logbook-photos/masters/57-pale-crayfish.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 107498,
+    "reviewed": true
+  },
+  {
+    "id": "tunnel-hound",
+    "entry": "Tunnel Hound",
+    "image": "public/logbook/tunnel-hound.webp",
+    "master": "docs/art/logbook-photos/masters/58-tunnel-hound.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 126928,
+    "reviewed": true
+  },
+  {
+    "id": "loc-sunken-station",
+    "entry": "Sunken Station",
+    "image": "public/logbook/loc-sunken-station.webp",
+    "master": "docs/art/logbook-photos/masters/59-loc-sunken-station.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 140200,
+    "reviewed": true
+  },
+  {
+    "id": "loc-ticket-hall",
+    "entry": "Ticket Hall",
+    "image": "public/logbook/loc-ticket-hall.webp",
+    "master": "docs/art/logbook-photos/masters/60-loc-ticket-hall.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 162612,
+    "reviewed": true
+  },
+  {
+    "id": "loc-platform",
+    "entry": "Platform",
+    "image": "public/logbook/loc-platform.webp",
+    "master": "docs/art/logbook-photos/masters/61-loc-platform.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 172326,
+    "reviewed": true
+  },
+  {
+    "id": "loc-stopped-train",
+    "entry": "Stopped Train",
+    "image": "public/logbook/loc-stopped-train.webp",
+    "master": "docs/art/logbook-photos/masters/62-loc-stopped-train.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 176074,
+    "reviewed": true
+  },
+  {
+    "id": "loc-maintenance-tunnel",
+    "entry": "Maintenance Tunnel",
+    "image": "public/logbook/loc-maintenance-tunnel.webp",
+    "master": "docs/art/logbook-photos/masters/63-loc-maintenance-tunnel.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 125352,
+    "reviewed": true
+  },
+  {
+    "id": "art-departure-board",
+    "entry": "Last Departure Board",
+    "image": "public/logbook/art-departure-board.webp",
+    "master": "docs/art/logbook-photos/masters/64-art-departure-board.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 127948,
+    "reviewed": true
+  },
+  {
+    "id": "art-ticket-machine",
+    "entry": "Ticket Machine",
+    "image": "public/logbook/art-ticket-machine.webp",
+    "master": "docs/art/logbook-photos/masters/65-art-ticket-machine.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 149776,
+    "reviewed": true
+  },
+  {
+    "id": "art-station-map",
+    "entry": "Station Map",
+    "image": "public/logbook/art-station-map.webp",
+    "master": "docs/art/logbook-photos/masters/66-art-station-map.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 145852,
+    "reviewed": true
+  },
+  {
+    "id": "art-umbrella-stand",
+    "entry": "Umbrella Stand",
+    "image": "public/logbook/art-umbrella-stand.webp",
+    "master": "docs/art/logbook-photos/masters/67-art-umbrella-stand.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 150522,
+    "reviewed": true
+  },
+  {
+    "id": "art-lost-and-found",
+    "entry": "Lost-and-Found Shelf",
+    "image": "public/logbook/art-lost-and-found.webp",
+    "master": "docs/art/logbook-photos/masters/68-art-lost-and-found.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 95312,
+    "reviewed": true
+  },
+  {
+    "id": "origin-charger",
+    "entry": "Predecessor's Charging Point",
+    "image": "public/logbook/origin-charger.webp",
+    "master": "docs/art/logbook-photos/masters/69-origin-charger.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 129294,
+    "reviewed": true
   }
 ]
