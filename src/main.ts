@@ -447,13 +447,26 @@ function useRelay(relay: RelayStation): void {
   else hud.toast("Relay Station", "Recharged and repaired", { kind: "system", field: "Progress saved" });
 }
 
+/** Resting skips to the next of these, so every time-of-day behavior is a short rest away. */
+const REST_STOPS = [
+  { hour: 6.5, name: "dawn", icon: "sun" },
+  { hour: 11, name: "midday", icon: "sun" },
+  { hour: 18.25, name: "dusk", icon: "moon" },
+  { hour: 21, name: "night", icon: "moon" },
+] as const;
+
+function nextRestStop(): (typeof REST_STOPS)[number] {
+  const h = time.hours;
+  return REST_STOPS.find((r) => r.hour > h + 0.25) ?? REST_STOPS[0];
+}
+
 function restAtRelay(): void {
-  const target = time.isNight || time.hours >= 17 ? 7 : 20;
+  const stop = nextRestStop();
   void transition(() => {
-    time.advanceTo(target);
+    time.advanceTo(stop.hour);
     status.restore();
     save();
-    hud.caption(target === 7 ? "Resting until morning…" : "Resting until nightfall…", 3);
+    hud.caption(`Resting until ${stop.name}…`, 3);
   });
 }
 
@@ -588,14 +601,14 @@ function updateGame(dt: number): void {
   // Relay Station interaction.
   const relay = relays.find((r) => r.inRange(robot.position));
   if (relay) {
-    const restUntil = time.isNight || time.hours >= 17 ? "morning" : "nightfall";
+    const rest = nextRestStop();
     const minutes = Math.round((performance.now() - lastSave) / 60000);
     hud.console(
       "Relay Station",
       relay.activated
         ? [
             { key: "E", icon: "save", label: "Save and recharge", sub: `Last save: ${minutes < 1 ? "just now" : `${minutes} min ago`} · energy ${Math.round((status.energy / status.capacity) * 100)}%`, primary: true },
-            { key: "R", icon: restUntil === "morning" ? "sun" : "moon", label: `Rest until ${restUntil}`, sub: "Time passes while the unit recharges" },
+            { key: "R", icon: rest.icon, label: `Rest until ${rest.name}`, sub: "Time passes while the unit recharges" },
             { key: "U", icon: "zap", label: "Upload and upgrade", sub: `${Math.floor(upgrades.uploaded)}% research uploaded` },
             { key: "Tab", icon: "book", label: "Open Logbook", sub: `${Math.round(logbook.completion() * 100)}% complete` },
           ]

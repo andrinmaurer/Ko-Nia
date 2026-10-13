@@ -40,6 +40,29 @@ const ZONES: Zone[] = [
   { id: "loc-clock-crossing", x0: 332, x1: 348, z0: -6, z1: 44 },
 ];
 
+/** The block each location belongs to: a scan anywhere in a block also records the block itself. */
+const BLOCK_OF: Record<string, string> = {
+  "loc-noodle-shop": "loc-shrine-street",
+  "loc-overpass": "loc-shrine-street",
+  "loc-shrine": "loc-shrine-street",
+  "loc-canopy-terrace": "loc-tower-foot",
+  "loc-board-room": "loc-tower-foot",
+  "loc-split-floors": "loc-tower-foot",
+  "loc-tower-lobby": "loc-tower-foot",
+  "loc-tower-plaza": "loc-tower-foot",
+  "loc-ticket-hall": "loc-sunken-station",
+  "loc-stopped-train": "loc-sunken-station",
+  "loc-maintenance-tunnel": "loc-sunken-station",
+  "loc-platform": "loc-sunken-station",
+  "loc-arcade-roof": "loc-flooded-arcade",
+  "loc-arcade-entrance": "loc-flooded-arcade",
+  "loc-clock-crossing": "loc-flooded-arcade",
+};
+
+export function blockLocationOf(locationId: string): string | undefined {
+  return BLOCK_OF[locationId];
+}
+
 export function locationAt(p: Vector3): string {
   for (const z of ZONES) {
     if (p.x >= z.x0 && p.x <= z.x1 && p.z >= z.z0 && p.z <= z.z1 && (z.yMin === undefined || p.y >= z.yMin) && (z.yMax === undefined || p.y <= z.yMax)) return z.id;
