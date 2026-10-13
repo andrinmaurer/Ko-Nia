@@ -45,6 +45,11 @@ export class Scanner {
     for (const s of scannables) for (const m of s.meshes) this.meshOwner.set(m, s);
   }
 
+  /** What the lens is locked on, if anything. */
+  get targeted(): Scannable | undefined {
+    return this.target?.scannable;
+  }
+
   toggleLens(): void {
     this.lensOn = !this.lensOn;
     if (!this.lensOn) this.setTarget(undefined);

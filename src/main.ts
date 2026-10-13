@@ -42,6 +42,8 @@ import { UpgradesView } from "./ui/upgradesView";
 import { MapView } from "./ui/mapView";
 import { loadSettings } from "./game/settings";
 import { SettingsView } from "./ui/settingsView";
+import { Soundscape } from "./audio/soundscape";
+import * as sfx from "./audio/cues";
 
 type State = "start" | "playing" | "paused" | "logbook" | "upgrades" | "map" | "transition";
 
@@ -123,8 +125,13 @@ const ctx: GameContext = {
   logbook,
   upgrades,
   robotSpeed: 0,
-  caption: (text, seconds) => hud.caption(text, seconds),
+  caption: (text, seconds) => {
+    // Creature captions are the subtitles for their sounds.
+    sound.caption(text);
+    if (settings.subtitles) hud.caption(text, seconds);
+  },
   hitRobot: (amount, push) => {
+    sound.play(sfx.hit, undefined, "effects", 2, 0.3);
     status.damage(amount);
     robot.push(push);
     hud.setHealth(status.health, status.maxHealth);
@@ -166,6 +173,20 @@ const quality = new QualityController(engine, shadows, glowLayer, detail);
 // --- Settings --------------------------------------------------------------------
 
 const settings = loadSettings();
+const sound = new Soundscape(() => scannables, volumesOf());
+
+function volumesOf() {
+  return { master: settings.volume, ambience: settings.ambience, effects: settings.effects, music: settings.music };
+}
+
+// Browsers only start audio after a click or key press.
+for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => sound.start());
+hud.onSound = (kind, text) => {
+  if (kind === "toast") sound.toast(text);
+  if (kind === "shutter") sound.play(sfx.shutter, undefined, "effects", 1, 0.3);
+  if (kind === "notice" && /^(Nothing to scan|No biological|Too far|Not enough energy)/.test(text)) sound.play(sfx.denied, undefined, "effects", 1, 0);
+};
+let lastTarget: unknown;
 
 function applySettings(): void {
   rig.lookSpeed = settings.lookSpeed;
@@ -176,6 +197,7 @@ function applySettings(): void {
   document.body.classList.toggle("reduce-motion", settings.reducedMotion);
   document.body.classList.toggle("hide-fps", !settings.showFps);
   hud.reducedMotion = settings.reducedMotion;
+  sound.setVolumes(volumesOf());
   if (settings.sprint === "hold") sprintLatched = false;
 }
 
@@ -373,7 +395,10 @@ function useRelay(relay: RelayStation): void {
   relay.setActivated(true);
   homeRelay = relay;
   const received = upgrades.upload();
-  if (received.length) hud.caption(TRANSMISSIONS[received[received.length - 1] / 5 - 1], 10);
+  if (received.length) {
+    hud.caption(TRANSMISSIONS[received[received.length - 1] / 5 - 1], 10);
+    sound.play(sfx.transmission, undefined, "effects", 3, 0.3);
+  }
   status.restore();
   hud.setHealth(status.health, status.maxHealth);
   save();
@@ -453,10 +478,13 @@ function updateGame(dt: number): void {
   }
   if (input.wasPressed("Mouse2")) {
     scanner.toggleLens();
+    sound.play(scanner.lensOn ? sfx.lensOn : sfx.lensOff, undefined, "effects", 1, 0);
     tutorial.lensOpened ||= scanner.lensOn;
   }
-  if (input.wasPressed("ArrowLeft")) scanner.cycleMode(-1);
-  if (input.wasPressed("ArrowRight")) scanner.cycleMode(1);
+  if (input.wasPressed("ArrowLeft") || input.wasPressed("ArrowRight")) {
+    scanner.cycleMode(input.wasPressed("ArrowLeft") ? -1 : 1);
+    if (scanner.lensOn) sound.play(sfx.modeTick, undefined, "effects", 1, 0);
+  }
   if (input.wasPressed("Mouse0") && scanner.lensOn) {
     scanner.scan();
     playtest.scanned();
@@ -487,6 +515,25 @@ function updateGame(dt: number): void {
 
   updateRegion();
   updateSpores(dt);
+
+  if (scanner.targeted !== lastTarget) {
+    lastTarget = scanner.targeted;
+    if (lastTarget) sound.play(sfx.targetTick, undefined, "effects", 1, 0);
+  }
+  const forward = rig.camera.getForwardRay(1).direction;
+  sound.update(dt, {
+    region: regions.active,
+    listener: rig.camera.position,
+    forward,
+    robot: robot.position,
+    speed: ctx.robotSpeed,
+    grounded: robot.isGrounded,
+    wading,
+    airborneMotor: robot.isHovering || robot.isGliding || robot.isGrappling,
+    daylight: time.daylight,
+    wind: wind.strength,
+    energy: status.energy / status.capacity,
+  });
 
   // Relay Station interaction.
   const relay = relays.find((r) => r.inRange(robot.position));
@@ -562,7 +609,7 @@ declare global {
   }
 }
 window.__konia = {
-  settings, applySettings, settingsView, robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+  settings, applySettings, settingsView, sound, robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";
