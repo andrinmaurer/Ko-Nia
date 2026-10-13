@@ -688,5 +688,175 @@
     "height": 640,
     "bytes": 129294,
     "reviewed": true
+  },
+  {
+    "id": "window-birch",
+    "entry": "Window Birch",
+    "image": "public/logbook/window-birch.webp",
+    "master": "docs/art/logbook-photos/masters/70-window-birch.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 186364,
+    "reviewed": true
+  },
+  {
+    "id": "duct-vine",
+    "entry": "Duct Vine",
+    "image": "public/logbook/duct-vine.webp",
+    "master": "docs/art/logbook-photos/masters/71-duct-vine.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 191318,
+    "reviewed": true
+  },
+  {
+    "id": "lobby-fig",
+    "entry": "Lobby Fig",
+    "image": "public/logbook/lobby-fig.webp",
+    "master": "docs/art/logbook-photos/masters/72-lobby-fig.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 208520,
+    "reviewed": true
+  },
+  {
+    "id": "glass-swallow",
+    "entry": "Glass Swallow",
+    "image": "public/logbook/glass-swallow.webp",
+    "master": "docs/art/logbook-photos/masters/73-glass-swallow.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 203986,
+    "reviewed": true
+  },
+  {
+    "id": "plaza-deer",
+    "entry": "Plaza Deer",
+    "image": "public/logbook/plaza-deer.webp",
+    "master": "docs/art/logbook-photos/masters/74-plaza-deer.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 222420,
+    "reviewed": true
+  },
+  {
+    "id": "ledge-kite",
+    "entry": "Ledge Kite",
+    "image": "public/logbook/ledge-kite.webp",
+    "master": "docs/art/logbook-photos/masters/75-ledge-kite.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 204092,
+    "reviewed": true
+  },
+  {
+    "id": "loc-tower-foot",
+    "entry": "Tower Foot",
+    "image": "public/logbook/loc-tower-foot.webp",
+    "master": "docs/art/logbook-photos/masters/76-loc-tower-foot.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 222138,
+    "reviewed": true
+  },
+  {
+    "id": "loc-tower-plaza",
+    "entry": "Plaza",
+    "image": "public/logbook/loc-tower-plaza.webp",
+    "master": "docs/art/logbook-photos/masters/77-loc-tower-plaza.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 247212,
+    "reviewed": true
+  },
+  {
+    "id": "loc-tower-lobby",
+    "entry": "Lobby",
+    "image": "public/logbook/loc-tower-lobby.webp",
+    "master": "docs/art/logbook-photos/masters/78-loc-tower-lobby.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 215422,
+    "reviewed": true
+  },
+  {
+    "id": "loc-split-floors",
+    "entry": "Split Floors",
+    "image": "public/logbook/loc-split-floors.webp",
+    "master": "docs/art/logbook-photos/masters/79-loc-split-floors.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 211918,
+    "reviewed": true
+  },
+  {
+    "id": "loc-board-room",
+    "entry": "Board Room",
+    "image": "public/logbook/loc-board-room.webp",
+    "master": "docs/art/logbook-photos/masters/80-loc-board-room.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 136038,
+    "reviewed": true
+  },
+  {
+    "id": "loc-canopy-terrace",
+    "entry": "Canopy Terrace",
+    "image": "public/logbook/loc-canopy-terrace.webp",
+    "master": "docs/art/logbook-photos/masters/81-loc-canopy-terrace.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 204016,
+    "reviewed": true
+  },
+  {
+    "id": "art-revolving-door",
+    "entry": "Revolving Door",
+    "image": "public/logbook/art-revolving-door.webp",
+    "master": "docs/art/logbook-photos/masters/82-art-revolving-door.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 200992,
+    "reviewed": true
+  },
+  {
+    "id": "art-lobby-directory",
+    "entry": "Lobby Directory",
+    "image": "public/logbook/art-lobby-directory.webp",
+    "master": "docs/art/logbook-photos/masters/83-art-lobby-directory.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 166440,
+    "reviewed": true
+  },
+  {
+    "id": "art-elevator-car",
+    "entry": "Elevator Car",
+    "image": "public/logbook/art-elevator-car.webp",
+    "master": "docs/art/logbook-photos/masters/84-art-elevator-car-v2.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 134436,
+    "reviewed": true
+  },
+  {
+    "id": "art-city-model",
+    "entry": "City Model",
+    "image": "public/logbook/art-city-model.webp",
+    "master": "docs/art/logbook-photos/masters/85-art-city-model.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 153724,
+    "reviewed": true
+  },
+  {
+    "id": "origin-terrace",
+    "entry": "The One Who Kept Going",
+    "image": "public/logbook/origin-terrace.webp",
+    "master": "docs/art/logbook-photos/masters/86-origin-terrace.png",
+    "width": 960,
+    "height": 640,
+    "bytes": 181334,
+    "reviewed": true
   }
 ]
