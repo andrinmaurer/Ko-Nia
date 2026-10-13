@@ -42,6 +42,7 @@ import { UpgradesView } from "./ui/upgradesView";
 import { MapView } from "./ui/mapView";
 import { loadSettings } from "./game/settings";
 import { SettingsView } from "./ui/settingsView";
+import { TitleBackdrops } from "./ui/titleBackdrops";
 import { Soundscape } from "./audio/soundscape";
 import * as sfx from "./audio/cues";
 
@@ -58,6 +59,8 @@ const SPORE_ENERGY = 40;
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const startScreen = document.getElementById("start") as HTMLDivElement;
 const startMenu = document.getElementById("start-menu") as HTMLDivElement;
+const titleBackdrops = new TitleBackdrops(startScreen);
+document.querySelector("#start-controls summary")!.innerHTML = `${icon("keyboard")}Controls`;
 
 // Resolution is managed by QualityController (no automatic device-ratio scaling).
 const engine = new Engine(canvas, true, { stencil: true, powerPreference: "high-performance" }, false);
@@ -250,10 +253,13 @@ renderMenu(saved ? "continue" : "start");
 function renderMenu(mode: "start" | "continue" | "paused"): void {
   menuMode = mode;
   startScreen.classList.remove("show-settings");
-  const first = mode === "start" ? "Start" : "Continue";
+  startScreen.dataset.mode = mode;
+  (document.getElementById("start-controls") as HTMLDetailsElement).open = false;
+  const first = mode === "start" ? "New game" : mode === "paused" ? "Resume" : "Continue";
   startMenu.innerHTML =
-    `<button class="kn-menu-item" data-action="play" aria-current="true">${icon("play")}${first}</button>` +
-    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("plus")}New game</button>`) +
+    `<button class="kn-menu-item" data-action="play" aria-current="true">${icon(mode === "start" ? "play" : "ring")}${first}</button>` +
+    (mode === "start" ? "" : `<button class="kn-menu-item" data-action="new">${icon("play")}New game</button>`) +
+    `<button class="kn-menu-item" data-action="logbook">${icon("book")}Logbook</button>` +
     `<button class="kn-menu-item" data-action="settings">${icon("sliders")}Settings</button>` +
     (mode === "paused" ? `<button class="kn-menu-item" data-action="report">${icon("clipboard")}Copy playtest report</button>` : "");
 }
@@ -278,6 +284,7 @@ startMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   const action = (e.target as HTMLElement).closest<HTMLElement>("[data-action]")?.dataset.action;
   if (action === "play") input.requestLock();
+  if (action === "logbook") openLogbook();
   if (action === "settings") {
     startScreen.classList.add("show-settings");
     settingsView.render();
@@ -287,6 +294,21 @@ startMenu.addEventListener("click", (e) => {
     clearSave();
     location.reload();
   }
+});
+
+// Keep the reference's selection treatment aligned with pointer and keyboard focus.
+startMenu.addEventListener("focusin", (e) => selectMenuItem(e.target));
+startMenu.addEventListener("pointerover", (e) => selectMenuItem(e.target));
+function selectMenuItem(target: EventTarget | null): void {
+  const item = (target as HTMLElement | null)?.closest<HTMLButtonElement>("button[data-action]");
+  if (!item) return;
+  for (const button of startMenu.querySelectorAll("button[data-action]")) button.setAttribute("aria-current", String(button === item));
+}
+startMenu.addEventListener("keydown", (e) => {
+  if (startScreen.classList.contains("show-settings") || !["ArrowDown", "ArrowUp"].includes(e.code)) return;
+  const items = [...startMenu.querySelectorAll<HTMLButtonElement>("button[data-action]")];
+  const i = items.indexOf(document.activeElement as HTMLButtonElement);
+  e.preventDefault(); items[(i + (e.code === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
 });
 
 let lastSave = performance.now();
@@ -355,7 +377,9 @@ document.addEventListener(LOCK_CHANGE, () => {
   startScreen.classList.toggle("hidden", input.locked || ["logbook", "upgrades", "map"].includes(state));
 });
 
+let logbookReturn: State = "playing";
 function openLogbook(): void {
+  logbookReturn = state;
   state = "logbook";
   tutorial.logbookOpened = true;
   playtest.logbookOpened();
@@ -367,10 +391,13 @@ function openLogbook(): void {
 function closeLogbook(): void {
   logbookView.close();
   hud.setUnread(logbook.unread.size);
-  state = "paused";
-  renderMenu("paused");
-  startScreen.classList.remove("hidden");
-  input.requestLock();
+  if (logbookReturn === "start" || logbookReturn === "paused") {
+    state = logbookReturn; renderMenu(state === "paused" ? "paused" : readSave() ? "continue" : "start");
+    startScreen.classList.remove("hidden");
+    startMenu.querySelector<HTMLButtonElement>('[data-action="logbook"]')?.focus();
+  } else {
+    state = "paused"; renderMenu("paused"); startScreen.classList.remove("hidden"); input.requestLock();
+  }
 }
 
 async function transition(midpoint: () => void): Promise<void> {
@@ -435,6 +462,7 @@ let autosaveTimer = 30;
 
 scene.onBeforeRenderObservable.add(() => {
   const real = engine.getDeltaTime() / 1000;
+  titleBackdrops.update(real, state === "start" && !settings.reducedMotion);
   if (state === "playing") {
     quality.update(real);
     playtest.sampleFrame(real, quality.label);
@@ -609,7 +637,7 @@ declare global {
   }
 }
 window.__konia = {
-  settings, applySettings, settingsView, sound, robot, rig, scene, input, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
+  settings, applySettings, settingsView, sound, robot, rig, scene, input, titleBackdrops, time, wind, status, logbook, logbookView, openLogbook, closeLogbook, scanner, upgrades, upgradesView, mapView, useRelay, installUpgrade, openPanel, save, relay: relays[0], relays, regions, temple, arcade, hud, life, scannables, ctx, playtest, quality,
   /** Skips the pointer-lock click (headless tests). */
   start: () => {
     state = "playing";

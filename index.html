@@ -10,10 +10,20 @@
     <canvas id="game"></canvas>
     <div id="hud"></div>
     <div id="logbook"></div>
-    <div id="start">
+    <div id="start" data-mode="start">
+      <div class="start-backdrops" aria-hidden="true">
+        <img class="is-active" src="title/city-sunrise.webp" alt="" fetchpriority="high" decoding="async" />
+        <img src="title/temple-mist.webp" alt="" decoding="async" />
+        <img src="title/flooded-arcade.webp" alt="" decoding="async" />
+        <img src="title/sunken-station.webp" alt="" decoding="async" />
+        <img src="title/city-blue-hour.webp" alt="" decoding="async" />
+      </div>
+      <div class="start-content">
       <img class="start-wordmark" src="ko-nia-wordmark-light.png" alt="Ko-Nia" />
       <p class="tagline">A WORLD RECLAIMED. A TRUTH REDISCOVERED.</p>
       <div class="kn-menu" id="start-menu"></div>
+      <details id="start-controls" class="start-controls">
+      <summary class="kn-menu-item">Controls</summary>
       <dl class="start-keys data-sm">
         <dt>WASD</dt><dd>Move</dd>
         <dt>U / M</dt><dd>Upgrades / explored map</dd>
@@ -28,6 +38,9 @@
         <dt>V</dt><dd>Camera</dd>
         <dt>Esc</dt><dd>Pause</dd>
       </dl>
+      </details>
+      </div>
+      <footer class="start-footer"><div class="start-unit">EXPLORATION UNIT<span>KO-NIA</span></div><div class="start-motto">CURIOUS · PRECISE · QUIET · NON-COMBATANT</div></footer>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
